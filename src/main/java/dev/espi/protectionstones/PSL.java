@@ -57,7 +57,7 @@ public enum PSL {
     NO_PERMISSION_DESTROY("no_permission_destroy", ChatColor.RED + "You don't have permission to destroy a protection block."),
     NO_PERMISSION_MEMBERS("no_permission_members", "&cYou don't have permission to use member commands."),
     NO_PERMISSION_OWNERS("no_permission_owners", "&cYou don't have permission to use owner commands."),
-    NO_PERMISSION_NEIGHBORS("no_permission_neighbors", "&cYou don't have permission to manage neighboring claim access."),
+    NO_PERMISSION_NEIGHBORS("no_permission_neighbors", "&cYou don't have permission to manage neighboring region access."),
     NO_PERMISSION_ADMIN("no_permission_admin", ChatColor.RED + "You do not have permission to use that command."),
     NO_PERMISSION_COUNT("no_permission_count", ChatColor.RED + "You do not have permission to use that command."),
     NO_PERMISSION_COUNT_OTHERS("no_permission_count_others", ChatColor.RED + "You do not have permission to use that command."),
