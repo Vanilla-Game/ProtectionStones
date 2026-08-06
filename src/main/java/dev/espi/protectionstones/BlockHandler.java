@@ -87,6 +87,27 @@ public class BlockHandler {
         return true;
     }
 
+    private static boolean isFarEnoughFromWorldBorder(ProtectedRegion region, WorldBorder border, int distance) {
+        Location center = border.getCenter();
+        double halfSize = border.getSize() / 2.0;
+        double maxCoordinate = border.getMaxCenterCoordinate();
+
+        double borderMinX = Math.max(-maxCoordinate, center.getX() - halfSize);
+        double borderMaxX = Math.min(maxCoordinate, center.getX() + halfSize);
+        double borderMinZ = Math.max(-maxCoordinate, center.getZ() - halfSize);
+        double borderMaxZ = Math.min(maxCoordinate, center.getZ() + halfSize);
+
+        BlockVector3 regionMin = region.getMinimumPoint();
+        BlockVector3 regionMax = region.getMaximumPoint();
+
+        // WorldGuard stores inclusive block coordinates. Add one to the maximum coordinates so the comparison uses
+        // the outer faces of the blocks, producing the same physical distance on both sides of the world border.
+        return regionMin.getX() >= borderMinX + distance
+                && regionMax.getX() + 1.0 <= borderMaxX - distance
+                && regionMin.getZ() >= borderMinZ + distance
+                && regionMax.getZ() + 1.0 <= borderMaxZ - distance;
+    }
+
     // create PS region from a block place event
     public static void createPSRegion(BlockPlaceEvent e) {
         Player p = e.getPlayer();
@@ -211,6 +232,15 @@ public class BlockHandler {
             return false;
         }
 
+        ProtectedRegion region = WGUtils.getDefaultProtectedRegion(blockOptions, WGUtils.parsePSRegionToLocation(id));
+
+        // check the full candidate region against the world border before adding it to WorldGuard
+        if (blockOptions.distanceFromWorldBorder != -1
+                && !isFarEnoughFromWorldBorder(region, l.getWorld().getWorldBorder(), blockOptions.distanceFromWorldBorder)) {
+            PSL.msg(p, PSL.REGION_TOO_CLOSE_TO_WORLD_BORDER.msg().replace("%num%", "" + blockOptions.distanceFromWorldBorder));
+            return false;
+        }
+
         // check for minimum distance between claims by using fake region
         if (blockOptions.distanceBetweenClaims != -1 && !p.hasPermission("protectionstones.superowner")) {
             if (!isFarEnoughFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz)) {
@@ -220,7 +250,6 @@ public class BlockHandler {
         }
 
         // create actual region
-        ProtectedRegion region = WGUtils.getDefaultProtectedRegion(blockOptions, WGUtils.parsePSRegionToLocation(id));
         region.getOwners().addPlayer(p.getUniqueId());
         region.setPriority(blockOptions.priority);
         rm.addRegion(region); // added to the region manager, be careful in implementing checks
