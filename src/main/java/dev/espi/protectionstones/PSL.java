@@ -57,6 +57,7 @@ public enum PSL {
     NO_PERMISSION_DESTROY("no_permission_destroy", ChatColor.RED + "You don't have permission to destroy a protection block."),
     NO_PERMISSION_MEMBERS("no_permission_members", "&cYou don't have permission to use member commands."),
     NO_PERMISSION_OWNERS("no_permission_owners", "&cYou don't have permission to use owner commands."),
+    NO_PERMISSION_NEIGHBORS("no_permission_neighbors", "&cYou don't have permission to manage neighboring claim access."),
     NO_PERMISSION_ADMIN("no_permission_admin", ChatColor.RED + "You do not have permission to use that command."),
     NO_PERMISSION_COUNT("no_permission_count", ChatColor.RED + "You do not have permission to use that command."),
     NO_PERMISSION_COUNT_OTHERS("no_permission_count_others", ChatColor.RED + "You do not have permission to use that command."),
@@ -103,6 +104,7 @@ public enum PSL {
     WORLD_DENIED_CREATE("psregion.world_denied_create", ChatColor.RED + "You can not create protections in this world."),
     REGION_OVERLAP("psregion.region_overlap", ChatColor.RED + "You can not place a protection block here as it overlaps another region."),
     REGION_TOO_CLOSE("psregion.region_too_close", ChatColor.RED + "Your protection block must be a minimum of %num% blocks from the edge of other regions!"),
+    REGION_NEIGHBOR_APPROVAL_REQUIRED("psregion.region_neighbor_approval_required", ChatColor.RED + "Approval required from: " + ChatColor.AQUA + "%owners%" + ChatColor.RED + ". In their region, an owner must run: " + ChatColor.AQUA + "%command%"),
     REGION_CANT_TELEPORT("psregion.cant_teleport", ChatColor.RED + "Your teleportation was blocked by a protection region!"),
     SPECIFY_ID_INSTEAD_OF_ALIAS("psregion.specify_id_instead_of_alias", ChatColor.GRAY + "There were multiple regions found with this name! Please use an ID instead.\n Regions with this name: " + ChatColor.AQUA + "%regions%"),
     REGION_NOT_ADJACENT("psregion.region_not_adjacent", ChatColor.RED + "You've passed the limit of non-adjacent regions! Try putting your protection block closer to other regions you already own."),
@@ -118,6 +120,13 @@ public enum PSL {
     REGION_ALREADY_IN_LOCATION_IS_HIDDEN("psregion.already_in_location_is_hidden", ChatColor.RED + "A region already exists in this location (is the protection block hidden?)"),
     CANNOT_REMOVE_YOURSELF_LAST_OWNER("psregion.cannot_remove_yourself_last_owner", ChatColor.RED + "You cannot remove yourself as you are the last owner."),
     CANNOT_REMOVE_YOURSELF_FROM_ALL_REGIONS("psregion.cannot_remove_yourself_all_regions", ChatColor.RED + "You cannot remove yourself from all of your regions at once, for safety reasons."),
+    NEIGHBOR_ADDED("psregion.neighbor_added", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " may now place a protected region next to this region."),
+    NEIGHBOR_REMOVED("psregion.neighbor_removed", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " may no longer place a protected region next to this region."),
+    NEIGHBOR_ALREADY_ADDED("psregion.neighbor_already_added", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " is already allowed to place a protected region next to this region."),
+    NEIGHBOR_NOT_ADDED("psregion.neighbor_not_added", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " is not allowed to place a protected region next to this region."),
+    NEIGHBOR_CANNOT_ADD_SELF("psregion.neighbor_cannot_add_self", ChatColor.RED + "You do not need to add yourself to this region's neighbor whitelist."),
+    NEIGHBOR_LIST("psregion.neighbor_list", ChatColor.GRAY + "Players allowed to place a protected region next to this region: " + ChatColor.AQUA + "%players%"),
+    NEIGHBOR_LIST_EMPTY("psregion.neighbor_list_empty", ChatColor.GRAY + "No players are allowed to place a protected region next to this region."),
 
     // ps toggle
     TOGGLE_HELP("toggle.help", ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps toggle|on|off"),
@@ -321,6 +330,8 @@ public enum PSL {
     ADDREMOVE_HELP_DESC("addremove.help_desc", "Use this command to add or remove a member of your protected region."),
     ADDREMOVE_OWNER_HELP("addremove.owner_help", ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps addowner|removeowner [playername]"),
     ADDREMOVE_OWNER_HELP_DESC("addremove.owner_help_desc", "Use this command to add or remove an owner of your protected region."),
+    NEIGHBOR_HELP("neighbor.help", ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps addneighbor|removeneighbor|neighbors [playername]"),
+    NEIGHBOR_HELP_DESC("neighbor.help_desc", "Manage which players may place a protected region next to this region."),
     ADDREMOVE_PLAYER_REACHED_LIMIT("addremove.player_reached_limit", ChatColor.RED + "This player has reached their region limit."),
     ADDREMOVE_PLAYER_NEEDS_TO_BE_ONLINE("addremove.player_needs_to_be_online", ChatColor.RED + "The player needs to be online to add them."),
 

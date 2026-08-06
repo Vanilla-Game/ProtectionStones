@@ -195,7 +195,9 @@ public class ArgInfo implements PSCommandArg {
         String flagValue;
         // loop through all flags
         for (Flag<?> flag : WGUtils.getFlagRegistry().getAll()) {
-            if (region.getFlag(flag) != null && !typeOptions.hiddenFlagsFromInfo.contains(flag.getName())) {
+            if (region.getFlag(flag) != null
+                    && flag != FlagHandler.PS_NEIGHBOR_WHITELIST
+                    && !typeOptions.hiddenFlagsFromInfo.contains(flag.getName())) {
                 flagValue = region.getFlag(flag).toString();
                 RegionGroupFlag groupFlag = flag.getRegionGroupFlag();
 

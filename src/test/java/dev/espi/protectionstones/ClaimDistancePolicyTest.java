@@ -17,40 +17,37 @@ package dev.espi.protectionstones;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClaimDistancePolicyTest {
     @Test
-    void memberIsBlockedByDefault() {
-        assertTrue(blocksPlacement(false, true, false));
+    void untrustedPlayerIsBlocked() {
+        assertEquals(ClaimDistancePolicy.BlockReason.NEIGHBOR_APPROVAL_REQUIRED, blockReason(false, false));
     }
 
     @Test
-    void memberCanBypassWhenEnabled() {
-        assertFalse(blocksPlacement(false, true, true));
+    void whitelistedNeighborCanBypass() {
+        assertEquals(ClaimDistancePolicy.BlockReason.NONE, blockReason(false, true));
     }
 
     @Test
     void ownerCanAlwaysBypass() {
-        assertFalse(blocksPlacement(true, false, false));
-        assertFalse(blocksPlacement(true, false, true));
+        assertEquals(ClaimDistancePolicy.BlockReason.NONE, blockReason(true, false));
+        assertEquals(ClaimDistancePolicy.BlockReason.NONE, blockReason(true, true));
     }
 
     @Test
-    void untrustedNeighborStillBlocksWhenMemberBypassIsEnabled() {
-        assertTrue(blocksPlacement(false, false, true));
-    }
-
-    @Test
-    void memberCannotBypassPlainWorldGuardRegion() {
-        assertTrue(ClaimDistancePolicy.blocksPlacement(false, true, true, false, false, 10, 10));
+    void neighborWhitelistCannotBypassPlainWorldGuardRegion() {
+        assertEquals(ClaimDistancePolicy.BlockReason.OTHER_REGION,
+                ClaimDistancePolicy.getBlockReason(false, true, false, false, 10, 10));
     }
 
     @Test
     void oneUntrustedNeighborBlocksMixedSet() {
-        boolean trustedNeighborBlocks = blocksPlacement(false, true, true);
-        boolean untrustedNeighborBlocks = blocksPlacement(false, false, true);
+        boolean trustedNeighborBlocks = blocksPlacement(false, true);
+        boolean untrustedNeighborBlocks = blocksPlacement(false, false);
 
         assertFalse(trustedNeighborBlocks);
         assertTrue(trustedNeighborBlocks || untrustedNeighborBlocks);
@@ -58,18 +55,26 @@ class ClaimDistancePolicyTest {
 
     @Test
     void preservesPriorityAndPassthroughBehaviorForUntrustedRegions() {
-        assertTrue(ClaimDistancePolicy.blocksPlacement(false, false, false, true, false, 0, 10));
-        assertTrue(ClaimDistancePolicy.blocksPlacement(false, false, false, true, true, 10, 10));
-        assertFalse(ClaimDistancePolicy.blocksPlacement(false, false, false, true, true, 9, 10));
-        assertTrue(ClaimDistancePolicy.blocksPlacement(false, false, false, false, false, 10, 10));
-        assertFalse(ClaimDistancePolicy.blocksPlacement(false, false, false, false, false, 9, 10));
+        assertEquals(ClaimDistancePolicy.BlockReason.NEIGHBOR_APPROVAL_REQUIRED,
+                ClaimDistancePolicy.getBlockReason(false, false, true, false, 0, 10));
+        assertEquals(ClaimDistancePolicy.BlockReason.NEIGHBOR_APPROVAL_REQUIRED,
+                ClaimDistancePolicy.getBlockReason(false, false, true, true, 10, 10));
+        assertEquals(ClaimDistancePolicy.BlockReason.NONE,
+                ClaimDistancePolicy.getBlockReason(false, false, true, true, 9, 10));
+        assertEquals(ClaimDistancePolicy.BlockReason.OTHER_REGION,
+                ClaimDistancePolicy.getBlockReason(false, false, false, false, 10, 10));
+        assertEquals(ClaimDistancePolicy.BlockReason.NONE,
+                ClaimDistancePolicy.getBlockReason(false, false, false, false, 9, 10));
     }
 
-    private static boolean blocksPlacement(boolean owner, boolean member, boolean allowMembersToBypass) {
-        return ClaimDistancePolicy.blocksPlacement(
+    private static boolean blocksPlacement(boolean owner, boolean neighborAllowed) {
+        return blockReason(owner, neighborAllowed) != ClaimDistancePolicy.BlockReason.NONE;
+    }
+
+    private static ClaimDistancePolicy.BlockReason blockReason(boolean owner, boolean neighborAllowed) {
+        return ClaimDistancePolicy.getBlockReason(
                 owner,
-                member,
-                allowMembersToBypass,
+                neighborAllowed,
                 true,
                 false,
                 0,

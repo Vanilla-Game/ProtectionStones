@@ -16,26 +16,37 @@
 package dev.espi.protectionstones;
 
 final class ClaimDistancePolicy {
+    enum BlockReason {
+        NONE,
+        NEIGHBOR_APPROVAL_REQUIRED,
+        OTHER_REGION
+    }
+
     private ClaimDistancePolicy() {
     }
 
-    static boolean blocksPlacement(
+    static BlockReason getBlockReason(
             boolean owner,
-            boolean member,
-            boolean allowMembersToBypass,
+            boolean neighborAllowed,
             boolean protectionStonesRegion,
             boolean passthroughAllowed,
             int regionPriority,
             int testRegionPriority
     ) {
-        if (owner || (allowMembersToBypass && protectionStonesRegion && member)) {
-            return false;
+        if (owner || (protectionStonesRegion && neighborAllowed)) {
+            return BlockReason.NONE;
         }
 
         if (protectionStonesRegion && !passthroughAllowed) {
-            return true;
+            return BlockReason.NEIGHBOR_APPROVAL_REQUIRED;
         }
 
-        return regionPriority >= testRegionPriority;
+        if (regionPriority < testRegionPriority) {
+            return BlockReason.NONE;
+        }
+
+        return protectionStonesRegion
+                ? BlockReason.NEIGHBOR_APPROVAL_REQUIRED
+                : BlockReason.OTHER_REGION;
     }
 }
