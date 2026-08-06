@@ -55,8 +55,6 @@ public class PSProtectBlock {
     // region section
     @Path("region.distance_between_claims")
     public int distanceBetweenClaims;
-    @Path("region.allow_members_to_bypass_distance_between_claims")
-    public boolean allowMembersToBypassDistanceBetweenClaims;
     @Path("region.distance_from_world_border")
     @SpecIntInRange(min = -1, max = Integer.MAX_VALUE)
     public int distanceFromWorldBorder;

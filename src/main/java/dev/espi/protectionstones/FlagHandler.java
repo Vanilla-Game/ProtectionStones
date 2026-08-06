@@ -61,6 +61,7 @@ public class FlagHandler {
     public static final Flag<Set<String>> PS_TAX_PAYMENTS_DUE = new SetFlag<>("ps-tax-payments-due", new StringFlag("ps-tax-payment"));
     public static final Flag<Set<String>> PS_TAX_LAST_PAYMENT_ADDED = new SetFlag<>("ps-tax-last-payment-added", new StringFlag("ps-tax-last-payment-entry"));
     public static final Flag<String> PS_TAX_AUTOPAYER = new StringFlag("ps-tax-autopayer");
+    public static final Flag<Set<String>> PS_NEIGHBOR_WHITELIST = new SetFlag<>("ps-neighbor-whitelist", new StringFlag("ps-neighbor"));
 
     // called on initial start
     static void registerFlags() {
@@ -82,6 +83,7 @@ public class FlagHandler {
             registry.register(PS_TAX_PAYMENTS_DUE);
             registry.register(PS_TAX_LAST_PAYMENT_ADDED);
             registry.register(PS_TAX_AUTOPAYER);
+            registry.register(PS_NEIGHBOR_WHITELIST);
         } catch (FlagConflictException e) {
             Bukkit.getLogger().severe("Flag conflict found! The plugin will not work properly! Please contact the developers of the plugin.");
             e.printStackTrace();
