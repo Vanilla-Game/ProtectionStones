@@ -134,6 +134,8 @@ class ConfigPlaceholders {
 
             case "region_distance_between_claims":
                 return b.distanceBetweenClaims + "";
+            case "region_allow_members_to_bypass_distance_between_claims":
+                return b.allowMembersToBypassDistanceBetweenClaims + "";
             case "region_distance_from_world_border":
                 return b.distanceFromWorldBorder + "";
             case "region_x_radius":

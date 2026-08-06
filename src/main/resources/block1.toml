@@ -50,6 +50,10 @@ placing_bypasses_wg_passthrough = true
     # Set to -1 for no minimum, but will still check for overlapping regions
     distance_between_claims = -1
 
+    # Allow members of every nearby ProtectionStones region to bypass distance_between_claims when placing a protection block.
+    # Region owners always bypass this distance check. This does not allow regions to overlap.
+    allow_members_to_bypass_distance_between_claims = false
+
     # Minimum distance between the edge of the protected region and the world border.
     # Set to 0 to only prevent regions from crossing the world border, or -1 to disable this check.
     distance_from_world_border = -1
