@@ -89,23 +89,13 @@ public class BlockHandler {
 
     private static boolean isFarEnoughFromWorldBorder(ProtectedRegion region, WorldBorder border, int distance) {
         Location center = border.getCenter();
-        double halfSize = border.getSize() / 2.0;
-        double maxCoordinate = border.getMaxCenterCoordinate();
-
-        double borderMinX = Math.max(-maxCoordinate, center.getX() - halfSize);
-        double borderMaxX = Math.min(maxCoordinate, center.getX() + halfSize);
-        double borderMinZ = Math.max(-maxCoordinate, center.getZ() - halfSize);
-        double borderMaxZ = Math.min(maxCoordinate, center.getZ() + halfSize);
-
         BlockVector3 regionMin = region.getMinimumPoint();
         BlockVector3 regionMax = region.getMaximumPoint();
 
-        // WorldGuard stores inclusive block coordinates. Add one to the maximum coordinates so the comparison uses
-        // the outer faces of the blocks, producing the same physical distance on both sides of the world border.
-        return regionMin.getX() >= borderMinX + distance
-                && regionMax.getX() + 1.0 <= borderMaxX - distance
-                && regionMin.getZ() >= borderMinZ + distance
-                && regionMax.getZ() + 1.0 <= borderMaxZ - distance;
+        return WorldBorderRegionPolicy.isFarEnough(
+                regionMin.getX(), regionMax.getX(), regionMin.getZ(), regionMax.getZ(),
+                center.getX(), center.getZ(), border.getSize(), border.getMaxCenterCoordinate(), distance
+        );
     }
 
     // create PS region from a block place event
