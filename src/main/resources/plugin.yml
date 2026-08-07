@@ -90,6 +90,9 @@ permissions:
   protectionstones.members:
     description: Allows players to add or remove region members. Allows players to use /ps info members command.
     default: op
+  protectionstones.neighbors:
+    description: Allows region owners to manage which players may place ProtectionStones regions next to their region.
+    default: op
   protectionstones.flags:
     description: Allows players to set their region flags.
     default: op

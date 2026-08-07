@@ -121,7 +121,8 @@ placing_bypasses_wg_passthrough = true
         "ps-rent-settings",
         "ps-tax-payments-due",
         "ps-tax-last-payment-added",
-        "ps-tax-autopayer"
+        "ps-tax-autopayer",
+        "ps-neighbor-whitelist"
     ]
 
     # Default priority type for this block type protection stone

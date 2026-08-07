@@ -18,6 +18,7 @@ package dev.espi.protectionstones;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
@@ -28,6 +29,7 @@ import dev.espi.protectionstones.commands.ArgMerge;
 import dev.espi.protectionstones.event.PSCreateEvent;
 import dev.espi.protectionstones.utils.LimitUtil;
 import dev.espi.protectionstones.utils.MiscUtil;
+import dev.espi.protectionstones.utils.UUIDCache;
 import dev.espi.protectionstones.utils.WGMerge;
 import dev.espi.protectionstones.utils.WGUtils;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -37,10 +39,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockPlaceEvent;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class BlockHandler {
     private static HashMap<Player, Double> lastProtectStonePlaced = new HashMap<>();
@@ -60,31 +59,70 @@ public class BlockHandler {
         return null;
     }
 
-    private static boolean isFarEnoughFromOtherClaims(PSProtectBlock blockOptions, World w, LocalPlayer lp, double bx, double by, double bz) {
+    private static class ClaimDistanceResult {
+        private final boolean otherRegionBlocks;
+        private final Set<ProtectedRegion> regionsRequiringApproval;
+
+        private ClaimDistanceResult(boolean otherRegionBlocks, Set<ProtectedRegion> regionsRequiringApproval) {
+            this.otherRegionBlocks = otherRegionBlocks;
+            this.regionsRequiringApproval = regionsRequiringApproval;
+        }
+
+        private boolean isAllowed() {
+            return !otherRegionBlocks && regionsRequiringApproval.isEmpty();
+        }
+    }
+
+    private static ClaimDistanceResult checkDistanceFromOtherClaims(PSProtectBlock blockOptions, World w, LocalPlayer lp, double bx, double by, double bz) {
         BlockVector3 min = WGUtils.getMinVector(bx, by, bz, blockOptions.distanceBetweenClaims, blockOptions.distanceBetweenClaims, blockOptions.distanceBetweenClaims);
         BlockVector3 max = WGUtils.getMaxVector(bx, by, bz, blockOptions.distanceBetweenClaims, blockOptions.distanceBetweenClaims, blockOptions.distanceBetweenClaims);
 
         ProtectedRegion td = new ProtectedCuboidRegion("regionRadiusTest" + (long) (bx + by + bz), true, min, max);
         td.setPriority(blockOptions.priority);
         RegionManager rgm = WGUtils.getRegionManagerWithWorld(w);
+        Set<ProtectedRegion> regionsRequiringApproval = new HashSet<>();
 
         // if the radius test region overlaps an unowned region
         if (rgm.overlapsUnownedRegion(td, lp)) {
             for (ProtectedRegion rg : rgm.getApplicableRegions(td)) {
-                // skip if the user is already an owner
-                if (rg.isOwner(lp)) continue;
+                ClaimDistancePolicy.BlockReason reason = ClaimDistancePolicy.getBlockReason(
+                        rg.isOwner(lp),
+                        RegionNeighborWhitelist.contains(rg, lp.getUniqueId()),
+                        ProtectionStones.isPSRegion(rg),
+                        rg.getFlag(Flags.PASSTHROUGH) == StateFlag.State.ALLOW,
+                        rg.getPriority(),
+                        td.getPriority()
+                );
 
-                if (ProtectionStones.isPSRegion(rg) && rg.getFlag(Flags.PASSTHROUGH) != StateFlag.State.ALLOW) {
-                    // if it is a PS region, and "passthrough allow" is not set, then it is not far enough
-                    return false;
-                } else if (rg.getPriority() >= td.getPriority()) {
-                    // if the priorities are the same for plain WorldGuard regions, it is not far enough
-                    return false;
+                if (reason == ClaimDistancePolicy.BlockReason.OTHER_REGION) {
+                    return new ClaimDistanceResult(true, regionsRequiringApproval);
+                }
+                if (reason == ClaimDistancePolicy.BlockReason.NEIGHBOR_APPROVAL_REQUIRED) {
+                    regionsRequiringApproval.add(rg);
                 }
             }
         }
 
-        return true;
+        return new ClaimDistanceResult(false, regionsRequiringApproval);
+    }
+
+    static String getApprovalOwnerNames(Set<ProtectedRegion> regions) {
+        List<ProtectedRegion> sortedRegions = new ArrayList<>(regions);
+        sortedRegions.sort(Comparator.comparing(ProtectedRegion::getId));
+
+        List<String> ownerGroups = new ArrayList<>();
+        for (ProtectedRegion region : sortedRegions) {
+            Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            DefaultDomain owners = region.getOwners();
+            for (UUID uuid : owners.getUniqueIds()) {
+                String name = UUIDCache.getNameFromUUID(uuid);
+                if (name == null) name = Bukkit.getOfflinePlayer(uuid).getName();
+                if (name != null) names.add(name);
+            }
+            names.addAll(owners.getPlayers());
+            if (!names.isEmpty()) ownerGroups.add(String.join(" / ", names));
+        }
+        return String.join(", ", ownerGroups);
     }
 
     private static boolean isFarEnoughFromWorldBorder(ProtectedRegion region, WorldBorder border, int distance) {
@@ -233,8 +271,18 @@ public class BlockHandler {
 
         // check for minimum distance between claims by using fake region
         if (blockOptions.distanceBetweenClaims != -1 && !p.hasPermission("protectionstones.superowner")) {
-            if (!isFarEnoughFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz)) {
-                PSL.msg(p, PSL.REGION_TOO_CLOSE.msg().replace("%num%", "" + blockOptions.distanceBetweenClaims));
+            ClaimDistanceResult distanceResult = checkDistanceFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz);
+            if (!distanceResult.isAllowed()) {
+                String ownerNames = getApprovalOwnerNames(distanceResult.regionsRequiringApproval);
+                if (!distanceResult.otherRegionBlocks && !ownerNames.isEmpty()) {
+                    String command = "/" + ProtectionStones.getInstance().getConfigOptions().base_command
+                            + " addneighbor " + p.getName();
+                    PSL.msg(p, PSL.REGION_NEIGHBOR_APPROVAL_REQUIRED.msg()
+                            .replace("%owners%", ownerNames)
+                            .replace("%command%", command));
+                } else {
+                    PSL.msg(p, PSL.REGION_TOO_CLOSE.msg().replace("%num%", "" + blockOptions.distanceBetweenClaims));
+                }
                 return false;
             }
         }

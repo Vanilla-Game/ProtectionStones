@@ -19,6 +19,7 @@ package dev.espi.protectionstones.placeholders;
 
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.Flags;
+import dev.espi.protectionstones.FlagHandler;
 import dev.espi.protectionstones.PSRegion;
 import dev.espi.protectionstones.ProtectionStones;
 import dev.espi.protectionstones.utils.MiscUtil;
@@ -105,7 +106,8 @@ class RegionPlaceholders {
         } else if (identifier.equals("flags")) {
             List<String> flags = new ArrayList<>();
             for (Flag<?> f : r.getWGRegion().getFlags().keySet()) {
-                if (!r.getTypeOptions().hiddenFlagsFromInfo.contains(f.getName())) {
+                if (f != FlagHandler.PS_NEIGHBOR_WHITELIST
+                        && !r.getTypeOptions().hiddenFlagsFromInfo.contains(f.getName())) {
                     flags.add(f.getName() + " " + r.getWGRegion().getFlag(f) + "&r");
                 }
             }
@@ -114,7 +116,7 @@ class RegionPlaceholders {
             String[] spl = identifier.split("_");
             if (spl.length > 1) {
                 Flag<?> f = Flags.fuzzyMatchFlag(WGUtils.getFlagRegistry(), spl[1]);
-                if (r.getWGRegion().getFlag(f) != null) {
+                if (f != FlagHandler.PS_NEIGHBOR_WHITELIST && r.getWGRegion().getFlag(f) != null) {
                     return r.getWGRegion().getFlag(f).toString();
                 }
             }

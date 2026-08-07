@@ -205,6 +205,7 @@ public class WGMerge {
     private static void mergeRegionFlags(List<PSRegion> baseRegions, PSRegion mergedRegion) {
         Set<String> taxPaymentsDue = mergedRegion.getWGRegion().getFlag(FlagHandler.PS_TAX_PAYMENTS_DUE);
         Set<String> lastTaxAdditions = mergedRegion.getWGRegion().getFlag(FlagHandler.PS_TAX_LAST_PAYMENT_ADDED);
+        Set<String> neighborWhitelist = new HashSet<>();
         if (taxPaymentsDue == null) taxPaymentsDue = new HashSet<>();
         if (lastTaxAdditions == null) lastTaxAdditions = new HashSet<>();
 
@@ -220,10 +221,14 @@ public class WGMerge {
             if (r.getWGRegion().getFlag(FlagHandler.PS_TAX_LAST_PAYMENT_ADDED) != null) {
                 lastTaxAdditions.addAll(r.getWGRegion().getFlag(FlagHandler.PS_TAX_LAST_PAYMENT_ADDED));
             }
+            if (r.getWGRegion().getFlag(FlagHandler.PS_NEIGHBOR_WHITELIST) != null) {
+                neighborWhitelist.addAll(r.getWGRegion().getFlag(FlagHandler.PS_NEIGHBOR_WHITELIST));
+            }
         }
 
         mergedRegion.getWGRegion().setFlag(FlagHandler.PS_TAX_PAYMENTS_DUE, taxPaymentsDue);
         mergedRegion.getWGRegion().setFlag(FlagHandler.PS_TAX_LAST_PAYMENT_ADDED, lastTaxAdditions);
+        mergedRegion.getWGRegion().setFlag(FlagHandler.PS_NEIGHBOR_WHITELIST, neighborWhitelist.isEmpty() ? null : neighborWhitelist);
     }
 
     // the regions in the merge list must actually exist
