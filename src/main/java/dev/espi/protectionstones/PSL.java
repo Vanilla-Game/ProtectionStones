@@ -105,6 +105,7 @@ public enum PSL {
     REGION_OVERLAP("psregion.region_overlap", ChatColor.RED + "You can not place a protection block here as it overlaps another region."),
     REGION_TOO_CLOSE("psregion.region_too_close", ChatColor.RED + "Your protection block must be a minimum of %num% blocks from the edge of other regions!"),
     REGION_NEIGHBOR_APPROVAL_REQUIRED("psregion.region_neighbor_approval_required", ChatColor.RED + "Approval required from: " + ChatColor.AQUA + "%owners%" + ChatColor.RED + ". In their region, an owner must run: " + ChatColor.AQUA + "%command%"),
+    REGION_TOO_CLOSE_TO_WORLD_BORDER("psregion.region_too_close_to_world_border", ChatColor.RED + "The edge of your protected region must be at least %num% blocks from the world border!"),
     REGION_CANT_TELEPORT("psregion.cant_teleport", ChatColor.RED + "Your teleportation was blocked by a protection region!"),
     SPECIFY_ID_INSTEAD_OF_ALIAS("psregion.specify_id_instead_of_alias", ChatColor.GRAY + "There were multiple regions found with this name! Please use an ID instead.\n Regions with this name: " + ChatColor.AQUA + "%regions%"),
     REGION_NOT_ADJACENT("psregion.region_not_adjacent", ChatColor.RED + "You've passed the limit of non-adjacent regions! Try putting your protection block closer to other regions you already own."),

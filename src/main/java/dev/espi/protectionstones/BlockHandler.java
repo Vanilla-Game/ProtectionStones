@@ -125,6 +125,17 @@ public class BlockHandler {
         return String.join(", ", ownerGroups);
     }
 
+    private static boolean isFarEnoughFromWorldBorder(ProtectedRegion region, WorldBorder border, int distance) {
+        Location center = border.getCenter();
+        BlockVector3 regionMin = region.getMinimumPoint();
+        BlockVector3 regionMax = region.getMaximumPoint();
+
+        return WorldBorderRegionPolicy.isFarEnough(
+                regionMin.getX(), regionMax.getX(), regionMin.getZ(), regionMax.getZ(),
+                center.getX(), center.getZ(), border.getSize(), border.getMaxCenterCoordinate(), distance
+        );
+    }
+
     // create PS region from a block place event
     public static void createPSRegion(BlockPlaceEvent e) {
         Player p = e.getPlayer();
@@ -249,6 +260,15 @@ public class BlockHandler {
             return false;
         }
 
+        ProtectedRegion region = WGUtils.getDefaultProtectedRegion(blockOptions, WGUtils.parsePSRegionToLocation(id));
+
+        // check the full candidate region against the world border before adding it to WorldGuard
+        if (blockOptions.distanceFromWorldBorder != -1
+                && !isFarEnoughFromWorldBorder(region, l.getWorld().getWorldBorder(), blockOptions.distanceFromWorldBorder)) {
+            PSL.msg(p, PSL.REGION_TOO_CLOSE_TO_WORLD_BORDER.msg().replace("%num%", "" + blockOptions.distanceFromWorldBorder));
+            return false;
+        }
+
         // check for minimum distance between claims by using fake region
         if (blockOptions.distanceBetweenClaims != -1 && !p.hasPermission("protectionstones.superowner")) {
             ClaimDistanceResult distanceResult = checkDistanceFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz);
@@ -268,7 +288,6 @@ public class BlockHandler {
         }
 
         // create actual region
-        ProtectedRegion region = WGUtils.getDefaultProtectedRegion(blockOptions, WGUtils.parsePSRegionToLocation(id));
         region.getOwners().addPlayer(p.getUniqueId());
         region.setPriority(blockOptions.priority);
         rm.addRegion(region); // added to the region manager, be careful in implementing checks
