@@ -141,6 +141,14 @@ public class ConfigUpgrades {
                 ProtectionStones.config.set("allow_home_teleport_for_members", true);
                 ProtectionStones.config.setComment("allow_home_teleport_for_members", " Whether or not members of a region can /ps home to the region.");
                 break;
+            case 16:
+                ProtectionStones.config.set("config_version", 17);
+                if (ProtectionStones.config.get("plot.create_cost") == null) {
+                    ProtectionStones.config.set("plot.create_cost", 50.0);
+                    ProtectionStones.config.setComment("plot.create_cost", " Cost for creating an inner plot zone via /ps plot create.\n" +
+                            " Set to 0.0 to disable the cost.");
+                }
+                break;
             case ProtectionStones.CONFIG_VERSION:
                 leaveLoop = true;
                 break;
