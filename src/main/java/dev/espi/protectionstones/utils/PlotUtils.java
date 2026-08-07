@@ -167,9 +167,9 @@ public final class PlotUtils {
 
     public static boolean boxesOverlap(BlockVector3 firstMin, BlockVector3 firstMax,
                                        BlockVector3 secondMin, BlockVector3 secondMax) {
-        return firstMax.getX() >= secondMin.getX() && firstMin.getX() <= secondMax.getX()
-                && firstMax.getY() >= secondMin.getY() && firstMin.getY() <= secondMax.getY()
-                && firstMax.getZ() >= secondMin.getZ() && firstMin.getZ() <= secondMax.getZ();
+        return firstMax.x() >= secondMin.x() && firstMin.x() <= secondMax.x()
+                && firstMax.y() >= secondMin.y() && firstMin.y() <= secondMax.y()
+                && firstMax.z() >= secondMin.z() && firstMin.z() <= secondMax.z();
     }
 
     public static boolean intersects(ProtectedRegion region, BlockVector3 selectionMin, BlockVector3 selectionMax) {
@@ -177,11 +177,11 @@ public final class PlotUtils {
         BlockVector3 regionMax = region.getMaximumPoint();
         if (!boxesOverlap(selectionMin, selectionMax, regionMin, regionMax)) return false;
 
-        int minY = Math.max(selectionMin.getY(), regionMin.getY());
-        long minX = Math.max(selectionMin.getX(), regionMin.getX());
-        long maxX = Math.min(selectionMax.getX(), regionMax.getX());
-        long minZ = Math.max(selectionMin.getZ(), regionMin.getZ());
-        long maxZ = Math.min(selectionMax.getZ(), regionMax.getZ());
+        int minY = Math.max(selectionMin.y(), regionMin.y());
+        long minX = Math.max(selectionMin.x(), regionMin.x());
+        long maxX = Math.min(selectionMax.x(), regionMax.x());
+        long minZ = Math.max(selectionMin.z(), regionMin.z());
+        long maxZ = Math.min(selectionMax.z(), regionMax.z());
         for (long x = minX; x <= maxX; x++) {
             for (long z = minZ; z <= maxZ; z++) {
                 if (region.contains(BlockVector3.at((int) x, minY, (int) z))) return true;
@@ -197,14 +197,14 @@ public final class PlotUtils {
     public static boolean fullyContains(ProtectedRegion parent, BlockVector3 selectionMin, BlockVector3 selectionMax) {
         BlockVector3 parentMin = parent.getMinimumPoint();
         BlockVector3 parentMax = parent.getMaximumPoint();
-        if (selectionMin.getY() < parentMin.getY() || selectionMax.getY() > parentMax.getY()) return false;
-        if (selectionMin.getX() < parentMin.getX() || selectionMax.getX() > parentMax.getX()
-                || selectionMin.getZ() < parentMin.getZ() || selectionMax.getZ() > parentMax.getZ()) return false;
+        if (selectionMin.y() < parentMin.y() || selectionMax.y() > parentMax.y()) return false;
+        if (selectionMin.x() < parentMin.x() || selectionMax.x() > parentMax.x()
+                || selectionMin.z() < parentMin.z() || selectionMax.z() > parentMax.z()) return false;
 
-        for (long x = selectionMin.getX(); x <= selectionMax.getX(); x++) {
-            for (long z = selectionMin.getZ(); z <= selectionMax.getZ(); z++) {
-                if (!parent.contains(BlockVector3.at((int) x, selectionMin.getY(), (int) z))
-                        || !parent.contains(BlockVector3.at((int) x, selectionMax.getY(), (int) z))) {
+        for (long x = selectionMin.x(); x <= selectionMax.x(); x++) {
+            for (long z = selectionMin.z(); z <= selectionMax.z(); z++) {
+                if (!parent.contains(BlockVector3.at((int) x, selectionMin.y(), (int) z))
+                        || !parent.contains(BlockVector3.at((int) x, selectionMax.y(), (int) z))) {
                     return false;
                 }
             }

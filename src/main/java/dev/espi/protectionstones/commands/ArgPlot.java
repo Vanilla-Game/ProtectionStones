@@ -169,8 +169,8 @@ public class ArgPlot implements PSCommandArg {
         String plotId = generatePlotId(rm);
         ProtectedCuboidRegion plotWG = new ProtectedCuboidRegion(
                 plotId,
-                BlockVector3.at(selMin.getX(), selMin.getY(), selMin.getZ()),
-                BlockVector3.at(selMax.getX(), selMax.getY(), selMax.getZ())
+                BlockVector3.at(selMin.x(), selMin.y(), selMin.z()),
+                BlockVector3.at(selMax.x(), selMax.y(), selMax.z())
         );
 
         ProtectedRegion parentWG = parent.getWGRegion();
@@ -409,9 +409,9 @@ public class ArgPlot implements PSCommandArg {
             BlockVector3 pMin = r.getMinimumPoint();
             BlockVector3 pMax = r.getMaximumPoint();
             String coords = ChatColor.DARK_GRAY + "("
-                    + pMin.getX() + "," + pMin.getY() + "," + pMin.getZ()
+                    + pMin.x() + "," + pMin.y() + "," + pMin.z()
                     + ChatColor.DARK_GRAY + ")→("
-                    + pMax.getX() + "," + pMax.getY() + "," + pMax.getZ()
+                    + pMax.x() + "," + pMax.y() + "," + pMax.z()
                     + ChatColor.DARK_GRAY + ")";
 
             String displayStr = name != null ? name : r.getId();
@@ -650,7 +650,7 @@ public class ArgPlot implements PSCommandArg {
     private long regionFootprint(ProtectedRegion r) {
         BlockVector3 min = r.getMinimumPoint();
         BlockVector3 max = r.getMaximumPoint();
-        return (long)(max.getX() - min.getX() + 1) * (max.getZ() - min.getZ() + 1);
+        return (long)(max.x() - min.x() + 1) * (max.z() - min.z() + 1);
     }
 
     private String generatePlotId(RegionManager rm) {
