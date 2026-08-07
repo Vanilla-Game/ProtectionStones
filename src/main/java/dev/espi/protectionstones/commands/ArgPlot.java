@@ -339,6 +339,7 @@ public class ArgPlot implements PSCommandArg {
 
         UUID targetUUID = UUIDCache.getUUIDFromName(args[2]);
         RegionManager rm = WGUtils.getRegionManagerWithPlayer(p);
+        if (rm == null) return PSL.msg(p, PSL.PLOT_NOT_FOUND.msg().replace("%name%", args[2]));
         LocalPlayer lp = WorldGuardPlugin.inst().wrapPlayer(p);
         boolean isAdmin = p.hasPermission("protectionstones.admin");
 
@@ -372,6 +373,7 @@ public class ArgPlot implements PSCommandArg {
 
     private boolean handleList(Player p) {
         RegionManager rm = WGUtils.getRegionManagerWithPlayer(p);
+        if (rm == null) return PSL.msg(p, PSL.PLOT_LIST_EMPTY.msg());
         LocalPlayer lp = WorldGuardPlugin.inst().wrapPlayer(p);
         boolean isAdmin = p.hasPermission("protectionstones.admin");
 
@@ -572,6 +574,7 @@ public class ArgPlot implements PSCommandArg {
     // ─── Private helpers ──────────────────────────────────────────────────────
 
     private List<ProtectedRegion> findPlots(Player p, RegionManager rm, String nameOrId) {
+        if (rm == null) return Collections.emptyList();
         LocalPlayer lp = WorldGuardPlugin.inst().wrapPlayer(p);
         boolean isAdmin = p.hasPermission("protectionstones.admin");
         List<ProtectedRegion> nameMatches = new ArrayList<>();

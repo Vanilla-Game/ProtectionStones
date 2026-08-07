@@ -1,5 +1,5 @@
 # Please do not change the config version unless you know what you are doing!
-config_version = 16
+config_version = 17
 uuidupdated = true
 region_negative_min_max_updated = true
 
