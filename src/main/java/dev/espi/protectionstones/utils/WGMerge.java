@@ -43,6 +43,25 @@ public class WGMerge {
         }
     }
 
+    public static class RegionHasPlotsException extends Exception {
+        private final String regionId;
+
+        RegionHasPlotsException(String regionId) {
+            this.regionId = regionId;
+        }
+
+        public String getRegionId() {
+            return regionId;
+        }
+    }
+
+    public static void assertNoPlots(RegionManager rm, Collection<String> parentIds) throws RegionHasPlotsException {
+        Optional<String> blockedParent = PlotUtils.firstParentWithPlot(rm.getRegions().values(), parentIds);
+        if (blockedParent.isPresent()) {
+            throw new RegionHasPlotsException(blockedParent.get());
+        }
+    }
+
     // welcome to giant mess of code that does some bad stuff
     // :D
     // more to come in RegionTraverse
@@ -90,9 +109,10 @@ public class WGMerge {
         }
     }
 
-    public static void unmergeRegion(World w, RegionManager rm, PSMergedRegion toUnmerge) throws RegionHoleException, RegionCannotMergeWhileRentedException {
+    public static void unmergeRegion(World w, RegionManager rm, PSMergedRegion toUnmerge) throws RegionHoleException, RegionCannotMergeWhileRentedException, RegionHasPlotsException {
         PSGroupRegion psr = toUnmerge.getGroupRegion(); // group region
         ProtectedRegion r = psr.getWGRegion();
+        assertNoPlots(rm, Collections.singleton(psr.getId()));
 
         String blockType = toUnmerge.getType();
         try {
@@ -228,20 +248,22 @@ public class WGMerge {
 
     // the regions in the merge list must actually exist
     // this is used by player merge interfaces
-    public static PSRegion mergeRealRegions(World w, RegionManager rm, PSRegion root, List<PSRegion> merge) throws RegionHoleException, RegionCannotMergeWhileRentedException {
+    public static PSRegion mergeRealRegions(World w, RegionManager rm, PSRegion root, List<PSRegion> merge) throws RegionHoleException, RegionCannotMergeWhileRentedException, RegionHasPlotsException {
+        assertNoPlots(rm, merge.stream().map(PSRegion::getId).toList());
         PSRegion r = mergeRegions(w, rm, root, merge);
         mergeRegionFlags(merge, r);
         return r;
     }
 
     // each region in merge must not be of type PSMergedRegion
-    private static PSRegion mergeRegions(World w, RegionManager rm, PSRegion root, List<PSRegion> merge) throws RegionHoleException, RegionCannotMergeWhileRentedException {
+    private static PSRegion mergeRegions(World w, RegionManager rm, PSRegion root, List<PSRegion> merge) throws RegionHoleException, RegionCannotMergeWhileRentedException, RegionHasPlotsException {
         return mergeRegions(root.getId(), w, rm, root, merge);
     }
 
     // merge contains ALL regions to be merged, and must ALL exist
     // root is the base flags to be copied
-    public static PSRegion mergeRegions(String newID, World w, RegionManager rm, PSRegion root, List<PSRegion> merge) throws RegionHoleException, RegionCannotMergeWhileRentedException {
+    public static PSRegion mergeRegions(String newID, World w, RegionManager rm, PSRegion root, List<PSRegion> merge) throws RegionHoleException, RegionCannotMergeWhileRentedException, RegionHasPlotsException {
+        assertNoPlots(rm, merge.stream().map(PSRegion::getId).toList());
         List<PSRegion> decomposedMerge = new ArrayList<>();
 
         // decompose merged regions into their bases
@@ -262,7 +284,7 @@ public class WGMerge {
         for (PSRegion r : merge) {
             if (!r.getId().equals(newID)) {
                 // run delete event for non-root real regions
-                Bukkit.getScheduler().runTask(ProtectionStones.getInstance(), () -> r.deleteRegion(false));
+                r.deleteRegion(false);
             } else {
                 rm.removeRegion(r.getId());
             }

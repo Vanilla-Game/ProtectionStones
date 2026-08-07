@@ -169,8 +169,10 @@ public class ArgAdminForceMerge {
             }
             try {
                 WGMerge.mergeRealRegions(w, rm, root, groupToMembers.get(key));
+            } catch (WGMerge.RegionHasPlotsException e) {
+                PSL.msg(p, PSL.PLOT_MERGE_BLOCKED.msg());
             } catch (WGMerge.RegionHoleException | WGMerge.RegionCannotMergeWhileRentedException e) {
-                // TODO
+                p.sendMessage(ChatColor.RED + "Could not merge region group " + key + ": " + e.getClass().getSimpleName());
             }
         }
 

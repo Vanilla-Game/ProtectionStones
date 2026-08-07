@@ -18,9 +18,13 @@ package dev.espi.protectionstones.commands;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import dev.espi.protectionstones.*;
 import dev.espi.protectionstones.utils.LimitUtil;
-import dev.espi.protectionstones.utils.UUIDCache;
+import dev.espi.protectionstones.utils.PlotUtils;
+import com.sk89q.worldguard.protection.managers.RegionManager;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dev.espi.protectionstones.utils.WGUtils;
+import dev.espi.protectionstones.utils.UUIDCache;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
@@ -77,80 +81,91 @@ public class ArgAddRemove implements PSCommandArg {
         UUID addPlayerUuid = UUIDCache.getUUIDFromName(args[1]);
         String addPlayerName = UUIDCache.getNameFromUUID(addPlayerUuid);
 
-        // getting player regions is slow, so run it async
-        Bukkit.getServer().getScheduler().runTaskAsynchronously(ProtectionStones.getInstance(), () -> {
-            List<PSRegion> regions;
+        List<PSRegion> regions;
 
-            // obtain region list that player is being added to or removed from
-            if (flags.containsKey("-a")) { // add or remove to all regions a player owns
+        // WorldGuard region reads and mutations must remain on the server thread.
+        if (flags.containsKey("-a")) {
 
-                // don't let players remove themself from all of their regions
-                if (operationType.equals("removeowner") && addPlayerUuid.equals(p.getUniqueId())) {
-                    PSL.msg(p, PSL.CANNOT_REMOVE_YOURSELF_FROM_ALL_REGIONS.msg());
-                    return;
-                }
-
-                regions = PSPlayer.fromPlayer(p).getPSRegions(p.getWorld(), false);
-            } else { // add or remove to one region (the region currently in)
-                PSRegion r = PSRegion.fromLocationGroup(p.getLocation());
-
-                if (r == null) {
-                    PSL.msg(p, PSL.NOT_IN_REGION.msg());
-                    return;
-                } else if (WGUtils.hasNoAccess(r.getWGRegion(), p, WorldGuardPlugin.inst().wrapPlayer(p), false)) {
-                    PSL.msg(p, PSL.NO_ACCESS.msg());
-                    return;
-                } else if (operationType.equals("removeowner") && addPlayerUuid.equals(p.getUniqueId()) && r.getOwners().size() == 1) {
-                    // don't let users remove themself if they are the last owner of the region
-                    PSL.msg(p, PSL.CANNOT_REMOVE_YOURSELF_LAST_OWNER.msg());
-                    return;
-                }
-
-                regions = Collections.singletonList(r);
+            if (operationType.equals("removeowner") && addPlayerUuid.equals(p.getUniqueId())) {
+                return PSL.msg(p, PSL.CANNOT_REMOVE_YOURSELF_FROM_ALL_REGIONS.msg());
             }
 
-            // check that the player is not over their limit if they are being set owner
-            if (operationType.equals("addowner")) {
-                if (determinePlayerSurpassedLimit(p, regions, PSPlayer.fromUUID(addPlayerUuid))) {
-                    return;
-                }
+            regions = PSPlayer.fromPlayer(p).getPSRegions(p.getWorld(), false);
+        } else {
+            PSRegion r = PSRegion.fromLocationGroup(p.getLocation());
+
+            if (r == null) {
+                return PSL.msg(p, PSL.NOT_IN_REGION.msg());
+            } else if (WGUtils.hasNoAccess(r.getWGRegion(), p, WorldGuardPlugin.inst().wrapPlayer(p), false)) {
+                return PSL.msg(p, PSL.NO_ACCESS.msg());
+            } else if (operationType.equals("removeowner") && addPlayerUuid.equals(p.getUniqueId()) && r.getOwners().size() == 1) {
+                return PSL.msg(p, PSL.CANNOT_REMOVE_YOURSELF_LAST_OWNER.msg());
             }
 
-            // apply operation to regions
-            for (PSRegion r : regions) {
+            regions = Collections.singletonList(r);
+        }
 
-                if (operationType.equals("add") || operationType.equals("addowner")) {
-                    if (flags.containsKey("-a")) {
-                        PSL.msg(p, PSL.ADDED_TO_REGION_SPECIFIC.msg()
-                                .replace("%player%", addPlayerName)
-                                .replace("%region%", r.getName() == null ? r.getId() : r.getName() + " (" + r.getId() + ")"));
-                    } else {
-                        PSL.msg(p, PSL.ADDED_TO_REGION.msg().replace("%player%", addPlayerName));
-                    }
+        if (operationType.equals("addowner")
+                && determinePlayerSurpassedLimit(p, regions, PSPlayer.fromUUID(addPlayerUuid))) {
+            return true;
+        }
 
-                    // add to WorldGuard profile cache
-                    Bukkit.getScheduler().runTaskAsynchronously(ProtectionStones.getInstance(), () -> UUIDCache.storeWGProfile(addPlayerUuid, addPlayerName));
+        Map<World, RegionManager> managers = new HashMap<>();
+        Map<World, Map<String, List<ProtectedRegion>>> plotIndexes = new HashMap<>();
+        for (PSRegion r : regions) {
+            RegionManager manager = managers.computeIfAbsent(r.getWorld(), WGUtils::getRegionManagerWithWorld);
+            if (manager != null) {
+                plotIndexes.computeIfAbsent(r.getWorld(), ignored -> PlotUtils.indexByParent(manager.getRegions().values()));
+            }
+        }
 
-                } else if ((operationType.equals("remove") && r.isMember(addPlayerUuid))
-                        || (operationType.equals("removeowner") && r.isOwner(addPlayerUuid))) {
+        for (PSRegion r : regions) {
+            boolean hadMember = r.isMember(addPlayerUuid);
+            boolean hadOwner = r.isOwner(addPlayerUuid);
 
-                    if (flags.containsKey("-a")) {
-                        PSL.msg(p, PSL.REMOVED_FROM_REGION_SPECIFIC.msg()
-                                .replace("%player%", addPlayerName)
-                                .replace("%region%", r.getName() == null ? r.getId() : r.getName() + " (" + r.getId() + ")"));
-                    } else {
-                        PSL.msg(p, PSL.REMOVED_FROM_REGION.msg().replace("%player%", addPlayerName));
-                    }
+            if (operationType.equals("add") || operationType.equals("addowner")) {
+                if (flags.containsKey("-a")) {
+                    PSL.msg(p, PSL.ADDED_TO_REGION_SPECIFIC.msg()
+                            .replace("%player%", addPlayerName)
+                            .replace("%region%", r.getName() == null ? r.getId() : r.getName() + " (" + r.getId() + ")"));
+                } else {
+                    PSL.msg(p, PSL.ADDED_TO_REGION.msg().replace("%player%", addPlayerName));
                 }
 
-                switch (operationType) {
-                    case "add" -> r.addMember(addPlayerUuid);
-                    case "remove" -> r.removeMember(addPlayerUuid);
-                    case "addowner" -> r.addOwner(addPlayerUuid);
-                    case "removeowner" -> r.removeOwner(addPlayerUuid);
+                Bukkit.getScheduler().runTaskAsynchronously(ProtectionStones.getInstance(),
+                        () -> UUIDCache.storeWGProfile(addPlayerUuid, addPlayerName));
+
+            } else if ((operationType.equals("remove") && hadMember)
+                    || (operationType.equals("removeowner") && hadOwner)) {
+
+                if (flags.containsKey("-a")) {
+                    PSL.msg(p, PSL.REMOVED_FROM_REGION_SPECIFIC.msg()
+                            .replace("%player%", addPlayerName)
+                            .replace("%region%", r.getName() == null ? r.getId() : r.getName() + " (" + r.getId() + ")"));
+                } else {
+                    PSL.msg(p, PSL.REMOVED_FROM_REGION.msg().replace("%player%", addPlayerName));
+                }
+
+            } else if (!flags.containsKey("-a")) {
+                // Nothing was removed, so no plot cascade runs either. Say so instead of staying silent.
+                PSL.msg(p, PSL.PLAYER_NOT_IN_REGION.msg().replace("%player%", addPlayerName));
+            }
+
+            switch (operationType) {
+                case "add" -> r.addMember(addPlayerUuid);
+                case "remove" -> {
+                    if (!hadMember) continue;
+                    r.removeMember(addPlayerUuid);
+                    cascadeRemoveFromPlots(r, addPlayerUuid, addPlayerName, p, plotIndexes.get(r.getWorld()));
+                }
+                case "addowner" -> r.addOwner(addPlayerUuid);
+                case "removeowner" -> {
+                    if (!hadOwner) continue;
+                    r.removeOwner(addPlayerUuid);
+                    cascadeRemoveFromPlots(r, addPlayerUuid, addPlayerName, p, plotIndexes.get(r.getWorld()));
                 }
             }
-        });
+        }
         return true;
     }
 
@@ -202,6 +217,25 @@ public class ArgAddRemove implements PSCommandArg {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private void cascadeRemoveFromPlots(PSRegion parentRegion, UUID playerUuid, String playerName,
+                                        Player commandSender, Map<String, List<ProtectedRegion>> plotIndex) {
+        if (plotIndex == null) return;
+        List<ProtectedRegion> childPlots = PlotUtils.childrenOf(plotIndex, parentRegion.getId());
+        if (childPlots.isEmpty()) return;
+
+        for (ProtectedRegion plot : childPlots) {
+            plot.getMembers().removePlayer(playerUuid);
+            plot.getOwners().removePlayer(playerUuid);
+            // Leaving the parent region resets the player to "not listed": no membership, and no
+            // leftover hard block or soft exclusion that would linger if they are added back later.
+            ArgPlot.clearRestrictions(plot, playerUuid);
+        }
+
+        PSL.msg(commandSender, PSL.PLOT_CASCADE_REMOVED.msg()
+                .replace("%player%", playerName)
+                .replace("%count%", String.valueOf(childPlots.size())));
     }
 
     public boolean determinePlayerSurpassedLimit(Player commandSender, List<PSRegion> regionsToBeAddedTo, PSPlayer addedPlayer) {

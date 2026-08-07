@@ -129,25 +129,20 @@ public class ArgMerge implements PSCommandArg {
             if (!WGUtils.canMergeRegionTypes(aRegion.getTypeOptions(), aRoot))
                 return PSL.msg(p, PSL.MERGE_NOT_ALLOWED.msg());
 
-            Bukkit.getScheduler().runTaskAsynchronously(ProtectionStones.getInstance(), () -> {
-                try {
-                    WGMerge.mergeRealRegions(p.getWorld(), rm, aRoot, Arrays.asList(aRegion, aRoot));
-                } catch (WGMerge.RegionHoleException e) {
-                    PSL.msg(p, PSL.NO_REGION_HOLES.msg());
-                    return;
-                } catch (WGMerge.RegionCannotMergeWhileRentedException e) {
-                    PSL.msg(p, PSL.CANNOT_MERGE_RENTED_REGION.msg().replace("%region%", e.getRentedRegion().getName() == null ? e.getRentedRegion().getId() : e.getRentedRegion().getName()));
-                    return;
-                }
-                PSL.msg(p, PSL.MERGE_MERGED.msg());
+            try {
+                WGMerge.mergeRealRegions(p.getWorld(), rm, aRoot, Arrays.asList(aRegion, aRoot));
+            } catch (WGMerge.RegionHoleException e) {
+                return PSL.msg(p, PSL.NO_REGION_HOLES.msg());
+            } catch (WGMerge.RegionCannotMergeWhileRentedException e) {
+                return PSL.msg(p, PSL.CANNOT_MERGE_RENTED_REGION.msg().replace("%region%", e.getRentedRegion().getName() == null ? e.getRentedRegion().getId() : e.getRentedRegion().getName()));
+            } catch (WGMerge.RegionHasPlotsException e) {
+                return PSL.msg(p, PSL.PLOT_MERGE_BLOCKED.msg());
+            }
+            PSL.msg(p, PSL.MERGE_MERGED.msg());
 
-                // show menu again if the new region still has overlapping regions
-                Bukkit.getScheduler().runTask(ProtectionStones.getInstance(), () -> {
-                    if (!getGUI(p, PSRegion.fromWGRegion(p.getWorld(), rm.getRegion(aRoot.getId()))).isEmpty()) {
-                        Bukkit.dispatchCommand(p, ProtectionStones.getInstance().getConfigOptions().base_command + " merge");
-                    }
-                });
-            });
+            if (!getGUI(p, PSRegion.fromWGRegion(p.getWorld(), rm.getRegion(aRoot.getId()))).isEmpty()) {
+                Bukkit.dispatchCommand(p, ProtectionStones.getInstance().getConfigOptions().base_command + " merge");
+            }
 
         } else {
             PSL.msg(s, PSL.MERGE_HELP.msg());

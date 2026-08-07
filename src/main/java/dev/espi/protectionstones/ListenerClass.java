@@ -19,14 +19,17 @@ import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.bukkit.event.block.PlaceBlockEvent;
+import com.sk89q.worldguard.bukkit.util.Materials;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.Flags;
+import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dev.espi.protectionstones.event.PSBreakProtectBlockEvent;
 import dev.espi.protectionstones.event.PSCreateEvent;
 import dev.espi.protectionstones.event.PSRemoveEvent;
 import dev.espi.protectionstones.utils.RecipeUtil;
+import dev.espi.protectionstones.utils.PlotUtils;
 import dev.espi.protectionstones.utils.UUIDCache;
 import dev.espi.protectionstones.utils.WGUtils;
 import org.bukkit.Bukkit;
@@ -34,11 +37,15 @@ import org.bukkit.ChatColor;
 import org.bukkit.ExplosionResult;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.block.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.AbstractWindCharge;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -48,15 +55,34 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.util.Vector;
 
+import com.sk89q.worldguard.protection.managers.RemovalStrategy;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.server.ServerLoadEvent;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class ListenerClass implements Listener {
+
+    // Denied players trigger events many times per second (held right click, projectiles), so the
+    // "no access" message is rate limited per player instead of being sent on every event.
+    private static final long PLOT_DENY_MESSAGE_COOLDOWN_MS = 2000;
+    private final Map<UUID, Long> lastPlotDenyMessage = new HashMap<>();
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerJoin(PlayerJoinEvent e) {
@@ -605,6 +631,301 @@ public class ListenerClass implements Listener {
                 execEvent(action, event.getPlayer(), event.getPlayer().getName(), event.getRegion());
             }
         }
+    }
+
+    // ─── Plot deny listeners (block players in ps-plot-denied from accessing plots) ───
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyBlockBreak(BlockBreakEvent e) {
+        if (isPlotDenied(e.getPlayer(), e.getBlock().getLocation(), PlotAction.BUILD)
+                || isPlotDenied(e.getPlayer(), getOtherHalf(e.getBlock()), PlotAction.BUILD)) {
+            denyWithMessage(e.getPlayer(), e);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyBlockPlace(BlockPlaceEvent e) {
+        checkPlotDenied(e.getPlayer(), e.getBlock().getLocation(), PlotAction.BUILD, e);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyMultiPlace(BlockMultiPlaceEvent e) {
+        for (BlockState state : e.getReplacedBlockStates()) {
+            if (isPlotDenied(e.getPlayer(), state.getLocation(), PlotAction.BUILD)) {
+                denyWithMessage(e.getPlayer(), e);
+                return;
+            }
+        }
+    }
+
+    // Covers right-click (doors, chests, buttons), left-click, and PHYSICAL (pressure plates, tripwires)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyInteract(PlayerInteractEvent e) {
+        if (e.getClickedBlock() == null) return;
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK
+                && e.getAction() != Action.LEFT_CLICK_BLOCK
+                && e.getAction() != Action.PHYSICAL) return;
+        PlotAction action = blockAction(e.getAction(), e.getClickedBlock().getType());
+        if (isPlotDenied(e.getPlayer(), e.getClickedBlock().getLocation(), action)
+                || isPlotDenied(e.getPlayer(), getOtherHalf(e.getClickedBlock()), action)) {
+            e.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
+            if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                if (rightClickWouldHaveDoneSomething(e)) sendPlotDenyMessage(e.getPlayer());
+                return;
+            }
+            e.setCancelled(true);
+            if (e.getAction() != Action.PHYSICAL) sendPlotDenyMessage(e.getPlayer());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyInteractEntity(PlayerInteractEntityEvent e) {
+        checkPlotDenied(e.getPlayer(), e.getRightClicked().getLocation(),
+                entityAction(e.getRightClicked()), e);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyEntityDamage(EntityDamageByEntityEvent e) {
+        Player responsible = getResponsiblePlayer(e.getDamager());
+        if (responsible != null) checkPlotDenied(responsible, e.getEntity().getLocation(), PlotAction.BUILD, e);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyHangingBreak(HangingBreakByEntityEvent e) {
+        Player responsible = getResponsiblePlayer(e.getRemover());
+        if (responsible != null) checkPlotDenied(responsible, e.getEntity().getLocation(), PlotAction.BUILD, e);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyProjectileHit(ProjectileHitEvent e) {
+        Player responsible = getResponsiblePlayer(e.getEntity());
+        if (responsible == null) return;
+        Location hit = e.getHitEntity() != null ? e.getHitEntity().getLocation()
+                : e.getHitBlock() != null ? e.getHitBlock().getLocation() : e.getEntity().getLocation();
+        // Projectiles are always treated as BUILD: a public interact flag is meant for players
+        // standing at the block, not for shooting mechanisms from outside the plot.
+        if (!isPlotDenied(responsible, hit, PlotAction.BUILD)) return;
+        // Cancelling already suppresses the hit effect. Do not remove the projectile: a thrown trident
+        // would be destroyed and the player would lose the item. Drop it in place instead.
+        e.setCancelled(true);
+        e.getEntity().setVelocity(new Vector(0, 0, 0));
+        sendPlotDenyMessage(responsible);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyBucketEmpty(PlayerBucketEmptyEvent e) {
+        Block changed = e.getBlockClicked().getRelative(e.getBlockFace());
+        checkPlotDenied(e.getPlayer(), changed.getLocation(), PlotAction.BUILD, e);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyBucketFill(PlayerBucketFillEvent e) {
+        checkPlotDenied(e.getPlayer(), e.getBlockClicked().getLocation(), PlotAction.BUILD, e);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlotDenyExplosion(EntityExplodeEvent e) {
+        Player responsible = getResponsiblePlayer(e.getEntity());
+        if (responsible == null) return;
+        boolean removed = e.blockList().removeIf(
+                block -> isPlotDenied(responsible, block.getLocation(), PlotAction.BUILD));
+        if (removed) PSL.msg(responsible, PSL.PLOT_NO_ACCESS.msg());
+    }
+
+    private Player getResponsiblePlayer(Object source) {
+        Object current = source;
+        for (int depth = 0; depth < 3 && current != null; depth++) {
+            if (current instanceof Player player) return player;
+            if (current instanceof Projectile projectile) {
+                current = projectile.getShooter();
+            } else if (current instanceof TNTPrimed tnt) {
+                current = tnt.getSource();
+            } else if (current instanceof ProjectileSource projectileSource && projectileSource instanceof Entity) {
+                current = (Entity) projectileSource;
+            } else {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * What the player is trying to do, so a soft exclusion can be matched against the plot's own
+     * public flags. BUILD has no public flag and is therefore always refused.
+     */
+    private enum PlotAction { BUILD, INTERACT, CONTAINER }
+
+    /**
+     * Mirrors how WorldGuard classifies a right click in RegionProtectionListener#onUseBlock:
+     * inventory blocks go through chest-access, blocks that count as building go through build,
+     * everything else through interact. Materials is WorldGuard's own helper, so the classification
+     * stays in sync with the server's WorldGuard version instead of being duplicated here.
+     */
+    private PlotAction blockAction(Action action, Material clicked) {
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.PHYSICAL) return PlotAction.BUILD;
+        if (Materials.isInventoryBlock(clicked)) return PlotAction.CONTAINER;
+        if (Materials.isConsideredBuildingIfUsed(clicked)) return PlotAction.BUILD;
+        return PlotAction.INTERACT;
+    }
+
+    /**
+     * Hangings and armour stands hold player property, so they stay on BUILD even when the plot has
+     * a public interact flag. Entities with an inventory follow chest-access.
+     */
+    private PlotAction entityAction(Entity entity) {
+        if (entity instanceof org.bukkit.inventory.InventoryHolder) return PlotAction.CONTAINER;
+        if (entity instanceof org.bukkit.entity.Hanging
+                || entity instanceof org.bukkit.entity.ArmorStand) return PlotAction.BUILD;
+        return PlotAction.INTERACT;
+    }
+
+    /** True when the plot itself grants this action to everyone, passers-by included. */
+    private boolean allowedByPublicPlotFlag(ProtectedRegion plot, PlotAction action) {
+        return switch (action) {
+            case INTERACT -> plot.getFlag(Flags.INTERACT) == StateFlag.State.ALLOW;
+            case CONTAINER -> plot.getFlag(Flags.CHEST_ACCESS) == StateFlag.State.ALLOW;
+            case BUILD -> false;
+        };
+    }
+
+    // Returns true if the player must be stopped at the given location for the given action
+    private boolean isPlotDenied(Player p, org.bukkit.Location loc, PlotAction action) {
+        RegionManager rm = WGUtils.getRegionManagerWithWorld(loc.getWorld());
+        if (rm == null) return false;
+        BlockVector3 bv = BlockVector3.at(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        for (ProtectedRegion r : rm.getApplicableRegions(bv).getRegions()) {
+            if (r.getFlag(FlagHandler.PS_PLOT) == null) continue;
+
+            boolean hardDenied = PlotUtils.isDenied(p.getUniqueId(), r);
+            boolean softExcluded = !hardDenied && PlotUtils.isExcluded(p.getUniqueId(), r);
+            if (!hardDenied && !softExcluded) continue;
+
+            String parentId = r.getFlag(FlagHandler.PS_PLOT);
+            ProtectedRegion parent = rm.getRegion(parentId);
+            if (parent != null && parent.isOwner(WorldGuardPlugin.inst().wrapPlayer(p))) continue;
+
+            // A soft exclusion only strips inherited membership; the plot's public flags still apply.
+            if (softExcluded && allowedByPublicPlotFlag(r, action)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    private void checkPlotDenied(Player p, org.bukkit.Location loc, PlotAction action,
+                                 org.bukkit.event.Cancellable event) {
+        if (isPlotDenied(p, loc, action)) {
+            denyWithMessage(p, event);
+        }
+    }
+
+    private void denyWithMessage(Player player, org.bukkit.event.Cancellable event) {
+        event.setCancelled(true);
+        sendPlotDenyMessage(player);
+    }
+
+    // Rate limited so held clicks and repeated projectiles cannot flood the chat.
+    private void sendPlotDenyMessage(Player player) {
+        long now = System.currentTimeMillis();
+        Long last = lastPlotDenyMessage.get(player.getUniqueId());
+        if (last != null && now - last < PLOT_DENY_MESSAGE_COOLDOWN_MS) return;
+        lastPlotDenyMessage.put(player.getUniqueId(), now);
+        PSL.msg(player, PSL.PLOT_NO_ACCESS.msg());
+    }
+
+    /**
+     * Right clicking plain terrain does nothing even without a plot, so telling the player they have
+     * no access would only be noise. Notify only when the click could actually have done something.
+     */
+    private boolean rightClickWouldHaveDoneSomething(PlayerInteractEvent e) {
+        if (e.getClickedBlock() != null && e.getClickedBlock().getType().isInteractable()) return true;
+        ItemStack inHand = e.getItem();
+        if (inHand == null) return false;
+        Material type = inHand.getType();
+        return type.isBlock()
+                || type == Material.WATER_BUCKET
+                || type == Material.LAVA_BUCKET
+                || type == Material.POWDER_SNOW_BUCKET
+                || type == Material.BUCKET
+                || type == Material.FLINT_AND_STEEL
+                || type == Material.FIRE_CHARGE
+                || type == Material.ARMOR_STAND
+                || type == Material.ITEM_FRAME
+                || type == Material.GLOW_ITEM_FRAME
+                || type == Material.PAINTING
+                || type == Material.END_CRYSTAL;
+    }
+
+    private Location getOtherHalf(Block block) {
+        if (block.getBlockData() instanceof org.bukkit.block.data.Bisected bisected) {
+            return block.getRelative(bisected.getHalf() == org.bukkit.block.data.Bisected.Half.TOP
+                    ? BlockFace.DOWN : BlockFace.UP).getLocation();
+        }
+        if (block.getBlockData() instanceof org.bukkit.block.data.type.Bed bed) {
+            BlockFace direction = bed.getPart() == org.bukkit.block.data.type.Bed.Part.HEAD
+                    ? bed.getFacing().getOppositeFace() : bed.getFacing();
+            return block.getRelative(direction).getLocation();
+        }
+        return block.getLocation();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPSRemoveCascadePlots(PSRemoveEvent event) {
+        if (event.isCancelled()) return;
+
+        String removedId = event.getRegion().getId();
+        World world = event.getRegion().getWorld();
+        Player cause = event.getPlayer();
+        Bukkit.getScheduler().runTask(ProtectionStones.getInstance(), () -> {
+            RegionManager rm = WGUtils.getRegionManagerWithWorld(world);
+            if (rm == null || rm.getRegion(removedId) != null) return;
+            List<ProtectedRegion> children = PlotUtils.childrenOf(
+                    PlotUtils.indexByParent(rm.getRegions().values()), removedId);
+            for (ProtectedRegion child : children) {
+                rm.removeRegion(child.getId(), RemovalStrategy.UNSET_PARENT_IN_CHILDREN);
+            }
+            if (cause != null && !children.isEmpty()) {
+                PSL.msg(cause, PSL.PLOT_CHILD_REMOVED.msg()
+                        .replace("%count%", String.valueOf(children.size())));
+            }
+        });
+    }
+
+    // Runs once after the server finishes loading all worlds and plugins.
+    // Cleans up any orphan plots whose parent PS region no longer exists —
+    // covers edge cases like /rg remove via console or data corruption.
+    @EventHandler
+    public void onServerLoad(ServerLoadEvent event) {
+        int total = 0;
+        for (org.bukkit.World w : Bukkit.getWorlds()) {
+            RegionManager rm = WGUtils.getRegionManagerWithWorld(w);
+            if (rm == null) continue;
+            total += cleanOrphanPlots(w, rm);
+        }
+        if (total > 0) {
+            ProtectionStones.getPluginLogger().info("[Plots] Cleaned " + total + " orphan plot(s) on startup.");
+        }
+    }
+
+    static int cleanOrphanPlots(org.bukkit.World world, RegionManager rm) {
+        java.util.Map<String, String> toRemove = new java.util.LinkedHashMap<>();
+        for (ProtectedRegion r : rm.getRegions().values()) {
+            String parentId = r.getFlag(FlagHandler.PS_PLOT);
+            if (parentId == null) continue;
+            ProtectedRegion parent = rm.getRegion(parentId);
+            String reason = null;
+            if (parent == null) reason = "missing parent";
+            else if (PSRegion.fromWGRegion(world, parent) == null) reason = "parent is not a ProtectionStones region";
+            else if (r.getParent() == null || !parentId.equals(r.getParent().getId())) reason = "WorldGuard parent mismatch";
+            else if (!(r instanceof com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion)) reason = "plot is not cuboid";
+            else if (!PlotUtils.fullyContains(parent, r.getMinimumPoint(), r.getMaximumPoint())) reason = "plot is outside parent";
+            if (reason != null) toRemove.put(r.getId(), reason);
+        }
+        for (java.util.Map.Entry<String, String> entry : toRemove.entrySet()) {
+            rm.removeRegion(entry.getKey(), RemovalStrategy.UNSET_PARENT_IN_CHILDREN);
+            ProtectionStones.getPluginLogger().info("[Plots] Removed invalid plot " + entry.getKey()
+                    + " in world " + world.getName() + ": " + entry.getValue());
+        }
+        return toRemove.size();
     }
 
 }
