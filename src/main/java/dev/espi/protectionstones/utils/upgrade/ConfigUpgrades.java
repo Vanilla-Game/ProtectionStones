@@ -143,9 +143,11 @@ public class ConfigUpgrades {
                 break;
             case 16:
                 ProtectionStones.config.set("config_version", 17);
-                ProtectionStones.config.set("plot.create_cost", 50.0);
-                ProtectionStones.config.setComment("plot.create_cost", " Cost for creating an inner plot zone via /ps plot create.\n" +
-                        " Set to 0.0 to disable the cost.");
+                if (ProtectionStones.config.get("plot.create_cost") == null) {
+                    ProtectionStones.config.set("plot.create_cost", 50.0);
+                    ProtectionStones.config.setComment("plot.create_cost", " Cost for creating an inner plot zone via /ps plot create.\n" +
+                            " Set to 0.0 to disable the cost.");
+                }
                 break;
             case ProtectionStones.CONFIG_VERSION:
                 leaveLoop = true;
