@@ -331,16 +331,16 @@ public class BlockHandler {
             // actually do auto merge
             if (!showGUI) {
                 PSRegion finalMergeTo = mergeTo;
-                Bukkit.getScheduler().runTaskAsynchronously(ProtectionStones.getInstance(), () -> {
-                    try {
-                        WGMerge.mergeRealRegions(p.getWorld(), r.getWGRegionManager(), finalMergeTo, Arrays.asList(finalMergeTo, r));
-                        PSL.msg(p, PSL.MERGE_AUTO_MERGED.msg().replace("%region%", finalMergeTo.getId()));
-                    } catch (WGMerge.RegionHoleException e) {
-                        PSL.msg(p, PSL.NO_REGION_HOLES.msg()); // TODO github issue #120, prevent holes even if showGUI is true
-                    } catch (WGMerge.RegionCannotMergeWhileRentedException e) {
-                        // don't need to tell player that you can't merge
-                    }
-                });
+                try {
+                    WGMerge.mergeRealRegions(p.getWorld(), r.getWGRegionManager(), finalMergeTo, Arrays.asList(finalMergeTo, r));
+                    PSL.msg(p, PSL.MERGE_AUTO_MERGED.msg().replace("%region%", finalMergeTo.getId()));
+                } catch (WGMerge.RegionHoleException e) {
+                    PSL.msg(p, PSL.NO_REGION_HOLES.msg()); // TODO github issue #120, prevent holes even if showGUI is true
+                } catch (WGMerge.RegionCannotMergeWhileRentedException e) {
+                    // don't need to tell player that you can't merge
+                } catch (WGMerge.RegionHasPlotsException e) {
+                    PSL.msg(p, PSL.PLOT_MERGE_BLOCKED.msg());
+                }
             }
         }
 

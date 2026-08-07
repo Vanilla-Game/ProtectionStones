@@ -89,6 +89,7 @@ public enum PSL {
     ADDED_TO_REGION_SPECIFIC("psregion.added_to_region_specific", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " has been added to region %region%."),
     REMOVED_FROM_REGION("psregion.removed_from_region", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " has been removed from region."),
     REMOVED_FROM_REGION_SPECIFIC("psregion.removed_from_region_specific", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " has been removed from region %region%."),
+    PLAYER_NOT_IN_REGION("psregion.player_not_in_region", ChatColor.RED + "%player% does not have that role in this region."),
     NOT_IN_REGION("psregion.not_in_region", ChatColor.RED + "You are not in a protection stones region!"),
     PLAYER_NOT_FOUND("psregion.player_not_found", ChatColor.RED + "Player not found."),
     NOT_PS_REGION("psregion.not_ps_region", ChatColor.RED + "Not a protection stones region."),
@@ -381,6 +382,52 @@ public enum PSL {
     MERGE_CLICK_TO_MERGE("merge.click_to_merge", "Click to merge with %region%!"),
     MERGE_AUTO_MERGED("merge.auto_merged", ChatColor.GRAY + "Region automatically merged with " + ChatColor.AQUA + "%region%" + ChatColor.GRAY + "."),
 
+    // ps plot
+    PLOT_HELP("plot.help", ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "=====" + ChatColor.RESET + " /ps plot " + ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH + "=====\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot create [name]\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot delete <name|id>\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot add <name|id> <player>\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot kick <name|id> <player>\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot unkick <name|id> <player>\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot kickall <player>\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot list\n"
+            + ChatColor.AQUA + "> " + ChatColor.GRAY + "/ps plot flag <name|id> [interact|chest-access] [allow|deny|none]"),
+    PLOT_HELP_DESC("plot.help_desc", "Manage inner plot zones inside your protection region."),
+    NO_PERMISSION_PLOT("plot.no_permission", ChatColor.RED + "You do not have permission to use plot commands."),
+    PLOT_NO_SELECTION("plot.no_selection", ChatColor.RED + "No selection! Use a wooden axe to mark the plot area first."),
+    PLOT_OUTSIDE_REGION("plot.outside_region", ChatColor.RED + "The selection must be entirely inside one of your protection regions!"),
+    PLOT_CREATED("plot.created", ChatColor.AQUA + "Plot created inside " + ChatColor.WHITE + "%parent%" + ChatColor.AQUA + ": " + ChatColor.WHITE + "%id%"),
+    PLOT_REMOVED("plot.removed", ChatColor.AQUA + "Plot removed: " + ChatColor.WHITE + "%id%"),
+    PLOT_NOT_FOUND("plot.not_found", ChatColor.RED + "Plot '%name%' not found. Use /ps plot list to see your plots."),
+    PLOT_AMBIGUOUS_NAME("plot.ambiguous_name", ChatColor.RED + "Multiple plots match '%name%'. Use the full plot ID instead."),
+    PLOT_NAME_TAKEN("plot.name_taken", ChatColor.RED + "You already have a plot named '%name%'. Choose another name."),
+    PLOT_LIST_HEADER("plot.list_header", ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "=====" + ChatColor.RESET + " Your Plots " + ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH + "====="),
+    PLOT_LIST_EMPTY("plot.list_empty", ChatColor.GRAY + "You have no plots in this world."),
+    PLOT_PLAYER_ADDED("plot.player_added", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " added to plot " + ChatColor.AQUA + "%plot%" + ChatColor.GRAY + "."),
+    PLOT_PLAYER_KICKED("plot.player_kicked", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " blocked from plot " + ChatColor.AQUA + "%plot%" + ChatColor.GRAY + "."),
+    PLOT_PLAYER_UNKICKED("plot.player_unkicked", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " is no longer blocked from plot " + ChatColor.AQUA + "%plot%"
+            + ChatColor.GRAY + ", but still has no access to it - they are treated as a passer-by, so only the plot's public flags apply. Use "
+            + ChatColor.AQUA + "/ps plot add" + ChatColor.GRAY + " to grant full access."),
+    PLOT_CHILD_REMOVED("plot.child_removed", ChatColor.GRAY + "%count% plot(s) were removed along with the region."),
+    PLOT_OVERLAP("plot.overlap", ChatColor.RED + "Selection overlaps an existing plot or a conflicting protected region."),
+    PLOT_NO_ACCESS("plot.no_access", ChatColor.RED + "You don't have access to this plot zone."),
+    PLOT_KICKALL("plot.kickall", ChatColor.AQUA + "%player%" + ChatColor.GRAY + " removed from " + ChatColor.AQUA + "%count%" + ChatColor.GRAY + " plot(s)."),
+    PLOT_CASCADE_REMOVED("plot.cascade_removed", ChatColor.GRAY + "%player% was also removed from " + ChatColor.AQUA + "%count%" + ChatColor.GRAY + " child plot(s)."),
+    PLOT_CANNOT_KICK_PARENT_OWNER("plot.cannot_kick_parent_owner", ChatColor.RED + "Cannot restrict the parent region owner from their own plots."),
+    PLOT_FLAG_SET("plot.flag_set", ChatColor.AQUA + "Flag " + ChatColor.WHITE + "%flag%" + ChatColor.AQUA + " -> " + ChatColor.WHITE + "%value%" + ChatColor.AQUA + " on plot " + ChatColor.WHITE + "%plot%"),
+    PLOT_FLAG_CLEARED("plot.flag_cleared", ChatColor.AQUA + "Flag " + ChatColor.WHITE + "%flag%" + ChatColor.AQUA + " cleared on plot " + ChatColor.WHITE + "%plot%" + ChatColor.GRAY + " (inherits from parent)"),
+    PLOT_FLAG_INVALID("plot.flag_invalid", ChatColor.RED + "Allowed flags: interact, chest-access. Valid values: allow, deny, none."),
+    PLOT_FLAG_LIST_HEADER("plot.flag_list_header", ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "=====" + ChatColor.RESET + " Flags: %plot% " + ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH + "====="),
+    PLOT_FLAG_ENTRY("plot.flag_entry", ChatColor.AQUA + "  %flag%" + ChatColor.GRAY + ": " + ChatColor.WHITE + "%value%"),
+    PLOT_FLAG_NONE_SET("plot.flag_none_set", ChatColor.GRAY + "No flags explicitly set - all inherited from parent."),
+    PLOT_PRIORITY_TOO_HIGH("plot.priority_too_high", ChatColor.RED + "The parent region priority is too high to create a safe plot."),
+    PLOT_ECONOMY_UNAVAILABLE("plot.economy_unavailable", ChatColor.RED + "Plot creation requires Vault economy, but no economy provider is available."),
+    PLOT_PAYMENT_FAILED("plot.payment_failed", ChatColor.RED + "The plot payment failed. No plot was created."),
+    PLOT_CREATE_FAILED("plot.create_failed", ChatColor.RED + "The plot could not be created. Any successful payment was refunded."),
+    PLOT_REFUND_FAILED("plot.refund_failed", ChatColor.RED + "Automatic refund failed. Contact an administrator; the error was logged."),
+    PLOT_MERGE_BLOCKED("plot.merge_blocked", ChatColor.RED + "This region has child plots. Remove or move them before merging or unmerging."),
+    PLOT_PLAYERS_ONLY("plot.players_only", ChatColor.RED + "This command can only be used in-game by a player."),
+
     ;
 
     private final String path;
@@ -512,6 +559,12 @@ public enum PSL {
             yml.set(psl.path, psl.defaultMessage);
         } else if (psl == PSL.REACHED_PER_BLOCK_REGION_LIMIT && value.equals("&cYou can not create any more regions of this type.")) {
             yml.set(psl.path, psl.defaultMessage);
+        } else if (psl == PSL.PLOT_HELP && (!value.contains("plot flag") || !value.contains("plot unkick"))) {
+            // Existing messages.yml files predate these subcommands, so refresh the help text
+            yml.set(psl.path, applyConfigColours(psl.defaultMessage));
+        } else if (psl == PSL.PLOT_OVERLAP
+                && value.equals("&cSelection overlaps with an existing plot in this region.")) {
+            yml.set(psl.path, applyConfigColours(psl.defaultMessage));
         } else if (value.contains("§")) {
             yml.set(psl.path, applyConfigColours(value));
         }

@@ -379,6 +379,13 @@ public class PSMergedRegion extends PSRegion {
 
     @Override
     public boolean deleteRegion(boolean deleteBlock, Player cause) {
+        try {
+            WGMerge.assertNoPlots(getWGRegionManager(), java.util.Collections.singleton(getGroupRegion().getId()));
+        } catch (WGMerge.RegionHasPlotsException e) {
+            if (cause != null) PSL.msg(cause, PSL.PLOT_MERGE_BLOCKED.msg());
+            return false;
+        }
+
         PSRemoveEvent event = new PSRemoveEvent(this, cause);
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) { // if event was cancelled, prevent execution
@@ -391,7 +398,7 @@ public class PSMergedRegion extends PSRegion {
 
         try {
             WGMerge.unmergeRegion(getWorld(), getWGRegionManager(), this);
-        } catch (WGMerge.RegionHoleException | WGMerge.RegionCannotMergeWhileRentedException e) {
+        } catch (WGMerge.RegionHoleException | WGMerge.RegionCannotMergeWhileRentedException | WGMerge.RegionHasPlotsException e) {
             this.unhide();
             return false;
         }
