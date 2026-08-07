@@ -7,48 +7,6 @@
       "package-name": "protectionstones",
       "include-component-in-tag": false,
       "include-v-in-tag": true,
-      "changelog-sections": [
-        {
-          "type": "feat",
-          "section": "Features"
-        },
-        {
-          "type": "fix",
-          "section": "Bug fixes"
-        },
-        {
-          "type": "perf",
-          "section": "Performance"
-        },
-        {
-          "type": "refactor",
-          "section": "Refactoring"
-        },
-        {
-          "type": "revert",
-          "section": "Reverts"
-        },
-        {
-          "type": "docs",
-          "section": "Documentation",
-          "hidden": true
-        },
-        {
-          "type": "test",
-          "section": "Tests",
-          "hidden": true
-        },
-        {
-          "type": "ci",
-          "section": "CI",
-          "hidden": true
-        },
-        {
-          "type": "chore",
-          "section": "Chores",
-          "hidden": true
-        }
-      ],
       "skip-snapshot": true
     }
   }
