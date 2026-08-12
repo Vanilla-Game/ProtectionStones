@@ -19,8 +19,7 @@ import java.util.Locale;
 
 enum ClaimDistanceAction {
     DENY,
-    WARN,
-    NONE;
+    WARN;
 
     static ClaimDistanceAction fromConfig(String value) {
         if (value == null) return DENY;
@@ -35,6 +34,6 @@ enum ClaimDistanceAction {
     static boolean isSupported(String value) {
         if (value == null) return false;
         String normalized = value.trim().toLowerCase(Locale.ROOT);
-        return normalized.equals("deny") || normalized.equals("warn") || normalized.equals("none");
+        return normalized.equals("deny") || normalized.equals("warn");
     }
 }
