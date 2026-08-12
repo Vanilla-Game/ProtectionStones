@@ -134,12 +134,10 @@ class ConfigPlaceholders {
 
             case "region_distance_between_claims":
                 return b.distanceBetweenClaims + "";
+            case "region_distance_between_claims_action":
+                return b.distanceBetweenClaimsAction;
             case "region_distance_from_world_border":
                 return b.distanceFromWorldBorder + "";
-            case "region_nearby_foreign_claim_distance":
-                return b.nearbyForeignClaimDistance + "";
-            case "region_nearby_foreign_claim_action":
-                return b.nearbyForeignClaimAction;
             case "region_x_radius":
                 return b.xRadius + "";
             case "region_y_radius":

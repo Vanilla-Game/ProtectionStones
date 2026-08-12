@@ -193,12 +193,12 @@ public class PSConfig {
                 // convert toml data into object
                 PSProtectBlock b = new ObjectConverter().toObject(c, PSProtectBlock::new);
 
-                if (!NearbyForeignClaimAction.isSupported(b.nearbyForeignClaimAction)) {
+                if (!ClaimDistanceAction.isSupported(b.distanceBetweenClaimsAction)) {
                     ProtectionStones.getPluginLogger().warning(String.format(
-                            "Unsupported nearby_foreign_claim_action '%s' in %s; using 'none'.",
-                            b.nearbyForeignClaimAction, file.getName()
+                            "Unsupported distance_between_claims_action '%s' in %s; using 'deny'.",
+                            b.distanceBetweenClaimsAction, file.getName()
                     ));
-                    b.nearbyForeignClaimAction = "none";
+                    b.distanceBetweenClaimsAction = "deny";
                 }
 
                 // check if material is valid, and is not a player head (since player heads also have the player name after)

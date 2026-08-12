@@ -105,7 +105,7 @@ public class BlockHandler {
         );
     }
 
-    private static Set<ProtectedRegion> getNearbyForeignClaims(
+    private static Set<ProtectedRegion> getForeignClaimsWithinDistance(
             RegionManager regionManager,
             LocalPlayer player,
             double blockX,
@@ -113,14 +113,12 @@ public class BlockHandler {
             double blockZ,
             int minimumDistance
     ) {
-        if (minimumDistance <= 0) return Set.of();
+        if (minimumDistance < 0) return Set.of();
 
-        // A claim exactly N blocks away is valid, so only inspect blocks within N - 1.
-        int searchRadius = minimumDistance - 1;
-        BlockVector3 min = WGUtils.getMinVector(blockX, blockY, blockZ, searchRadius, -1, searchRadius);
-        BlockVector3 max = WGUtils.getMaxVector(blockX, blockY, blockZ, searchRadius, -1, searchRadius);
+        BlockVector3 min = WGUtils.getMinVector(blockX, blockY, blockZ, minimumDistance, minimumDistance, minimumDistance);
+        BlockVector3 max = WGUtils.getMaxVector(blockX, blockY, blockZ, minimumDistance, minimumDistance, minimumDistance);
         ProtectedRegion searchRegion = new ProtectedCuboidRegion(
-                "nearbyForeignClaimTest" + (long) (blockX + blockY + blockZ),
+                "foreignClaimDistanceTest" + (long) (blockX + blockY + blockZ),
                 true,
                 min,
                 max
@@ -285,20 +283,20 @@ public class BlockHandler {
             return false;
         }
 
-        // check for minimum distance between claims by using fake region
+        Set<ProtectedRegion> foreignClaimsWithinDistance = Set.of();
         if (blockOptions.distanceBetweenClaims != -1 && !p.hasPermission("protectionstones.superowner")) {
-            if (!isFarEnoughFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz)) {
-                PSL.msg(p, PSL.REGION_TOO_CLOSE.msg().replace("%num%", "" + blockOptions.distanceBetweenClaims));
-                return false;
-            }
-        }
+            ClaimDistanceAction distanceAction = ClaimDistanceAction.fromConfig(blockOptions.distanceBetweenClaimsAction);
 
-        Set<ProtectedRegion> nearbyForeignClaims = Set.of();
-        if (NearbyForeignClaimAction.fromConfig(blockOptions.nearbyForeignClaimAction) == NearbyForeignClaimAction.WARN
-                && !p.hasPermission("protectionstones.superowner")) {
-            nearbyForeignClaims = getNearbyForeignClaims(
-                    rm, lp, bx, by, bz, blockOptions.nearbyForeignClaimDistance
-            );
+            if (distanceAction == ClaimDistanceAction.DENY) {
+                if (!isFarEnoughFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz)) {
+                    PSL.msg(p, PSL.REGION_TOO_CLOSE.msg().replace("%num%", "" + blockOptions.distanceBetweenClaims));
+                    return false;
+                }
+            } else if (distanceAction == ClaimDistanceAction.WARN) {
+                foreignClaimsWithinDistance = getForeignClaimsWithinDistance(
+                        rm, lp, bx, by, bz, blockOptions.distanceBetweenClaims
+                );
+            }
         }
 
         // create actual region
@@ -350,10 +348,10 @@ public class BlockHandler {
             return false;
         }
 
-        if (!nearbyForeignClaims.isEmpty()) {
-            String ownerNames = getOwnerNames(nearbyForeignClaims);
-            PSL.msg(p, PSL.REGION_NEARBY_FOREIGN_CLAIM_WARNING.msg()
-                    .replace("%num%", "" + blockOptions.nearbyForeignClaimDistance)
+        if (!foreignClaimsWithinDistance.isEmpty()) {
+            String ownerNames = getOwnerNames(foreignClaimsWithinDistance);
+            PSL.msg(p, PSL.REGION_DISTANCE_BETWEEN_CLAIMS_WARNING.msg()
+                    .replace("%num%", "" + blockOptions.distanceBetweenClaims)
                     .replace("%owners%", ownerNames));
         }
 

@@ -21,24 +21,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class NearbyForeignClaimActionTest {
+class ClaimDistanceActionTest {
     @Test
-    void defaultsToNoneForMissingOrUnsupportedActions() {
-        assertEquals(NearbyForeignClaimAction.NONE, NearbyForeignClaimAction.fromConfig(null));
-        assertEquals(NearbyForeignClaimAction.NONE, NearbyForeignClaimAction.fromConfig("block"));
+    void defaultsToDenyForMissingOrUnsupportedActions() {
+        assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig(null));
+        assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig("block"));
     }
 
     @Test
     void parsesSupportedActionsCaseInsensitively() {
-        assertEquals(NearbyForeignClaimAction.NONE, NearbyForeignClaimAction.fromConfig("none"));
-        assertEquals(NearbyForeignClaimAction.WARN, NearbyForeignClaimAction.fromConfig(" WARN "));
+        assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig("deny"));
+        assertEquals(ClaimDistanceAction.WARN, ClaimDistanceAction.fromConfig(" WARN "));
+        assertEquals(ClaimDistanceAction.NONE, ClaimDistanceAction.fromConfig("None"));
     }
 
     @Test
     void validatesOnlyDocumentedActions() {
-        assertTrue(NearbyForeignClaimAction.isSupported("none"));
-        assertTrue(NearbyForeignClaimAction.isSupported("WARN"));
-        assertFalse(NearbyForeignClaimAction.isSupported("block"));
-        assertFalse(NearbyForeignClaimAction.isSupported(null));
+        assertTrue(ClaimDistanceAction.isSupported("deny"));
+        assertTrue(ClaimDistanceAction.isSupported("WARN"));
+        assertTrue(ClaimDistanceAction.isSupported("none"));
+        assertFalse(ClaimDistanceAction.isSupported("block"));
+        assertFalse(ClaimDistanceAction.isSupported(null));
     }
 }

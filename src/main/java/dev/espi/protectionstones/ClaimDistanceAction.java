@@ -17,23 +17,24 @@ package dev.espi.protectionstones;
 
 import java.util.Locale;
 
-enum NearbyForeignClaimAction {
-    NONE,
-    WARN;
+enum ClaimDistanceAction {
+    DENY,
+    WARN,
+    NONE;
 
-    static NearbyForeignClaimAction fromConfig(String value) {
-        if (value == null) return NONE;
+    static ClaimDistanceAction fromConfig(String value) {
+        if (value == null) return DENY;
 
         try {
             return valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ignored) {
-            return NONE;
+            return DENY;
         }
     }
 
     static boolean isSupported(String value) {
         if (value == null) return false;
         String normalized = value.trim().toLowerCase(Locale.ROOT);
-        return normalized.equals("none") || normalized.equals("warn");
+        return normalized.equals("deny") || normalized.equals("warn") || normalized.equals("none");
     }
 }

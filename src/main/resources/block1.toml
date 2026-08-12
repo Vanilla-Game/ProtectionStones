@@ -47,20 +47,16 @@ placing_bypasses_wg_passthrough = true
 [region]
     # Minimum distance between claims (that aren't owned by the same owner), measured from the protection block to the edge of another region
     # You will probably have to change this between blocks, since the region sizes will be different
-    # Set to -1 for no minimum, but will still check for overlapping regions
-    distance_between_claims = -1
+    # Set to -1 to disable the distance check, but overlapping regions will still be checked
+    distance_between_claims = 30
+
+    # Action when another player's region is within distance_between_claims.
+    # Supported actions: "deny" (prevent placement), "warn" (warn without preventing placement), "none" (do nothing).
+    distance_between_claims_action = "deny"
 
     # Minimum distance between the edge of the protected region and the world border.
     # Set to 0 to only prevent regions from crossing the world border, or -1 to disable this check.
     distance_from_world_border = -1
-
-    # Distance from the placed protection block to the edge of another player's ProtectionStones region.
-    # This is used by nearby_foreign_claim_action and is measured horizontally.
-    nearby_foreign_claim_distance = 30
-
-    # Action when another player's ProtectionStones region is closer than nearby_foreign_claim_distance.
-    # Supported actions: "none" (do nothing), "warn" (warn the player without preventing placement).
-    nearby_foreign_claim_action = "none"
 
     # Protection radius of block (radius of 64 -> 129 x 129 region)
     # Set y_radius to -1 if you want it to protect for all y levels.

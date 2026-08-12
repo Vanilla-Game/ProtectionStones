@@ -24,7 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class NearbyForeignClaimOwnersTest {
+class ClaimDistanceOwnersTest {
     @Test
     void returnsUniqueSortedOwnerNamesAcrossClaims() {
         ProtectedRegion first = region("first", "Carol", "Alice");

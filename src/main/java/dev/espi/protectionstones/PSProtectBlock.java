@@ -55,14 +55,11 @@ public class PSProtectBlock {
     // region section
     @Path("region.distance_between_claims")
     public int distanceBetweenClaims;
+    @Path("region.distance_between_claims_action")
+    public String distanceBetweenClaimsAction;
     @Path("region.distance_from_world_border")
     @SpecIntInRange(min = -1, max = Integer.MAX_VALUE)
     public int distanceFromWorldBorder;
-    @Path("region.nearby_foreign_claim_distance")
-    @SpecIntInRange(min = 0, max = Integer.MAX_VALUE)
-    public int nearbyForeignClaimDistance;
-    @Path("region.nearby_foreign_claim_action")
-    public String nearbyForeignClaimAction;
     @Path("region.x_radius")
     @SpecIntInRange(min = 0, max = Integer.MAX_VALUE)
     public int xRadius;
