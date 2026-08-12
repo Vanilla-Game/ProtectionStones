@@ -18,6 +18,7 @@ package dev.espi.protectionstones;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
@@ -28,6 +29,7 @@ import dev.espi.protectionstones.commands.ArgMerge;
 import dev.espi.protectionstones.event.PSCreateEvent;
 import dev.espi.protectionstones.utils.LimitUtil;
 import dev.espi.protectionstones.utils.MiscUtil;
+import dev.espi.protectionstones.utils.UUIDCache;
 import dev.espi.protectionstones.utils.WGMerge;
 import dev.espi.protectionstones.utils.WGUtils;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -39,8 +41,13 @@ import org.bukkit.event.block.BlockPlaceEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 
 public class BlockHandler {
     private static HashMap<Player, Double> lastProtectStonePlaced = new HashMap<>();
@@ -96,6 +103,51 @@ public class BlockHandler {
                 regionMin.getX(), regionMax.getX(), regionMin.getZ(), regionMax.getZ(),
                 center.getX(), center.getZ(), border.getSize(), border.getMaxCenterCoordinate(), distance
         );
+    }
+
+    private static Set<ProtectedRegion> getForeignClaimsWithinDistance(
+            RegionManager regionManager,
+            LocalPlayer player,
+            double blockX,
+            double blockY,
+            double blockZ,
+            int minimumDistance
+    ) {
+        if (minimumDistance < 0) return Set.of();
+
+        BlockVector3 min = WGUtils.getMinVector(blockX, blockY, blockZ, minimumDistance, minimumDistance, minimumDistance);
+        BlockVector3 max = WGUtils.getMaxVector(blockX, blockY, blockZ, minimumDistance, minimumDistance, minimumDistance);
+        ProtectedRegion searchRegion = new ProtectedCuboidRegion(
+                "foreignClaimDistanceTest" + (long) (blockX + blockY + blockZ),
+                true,
+                min,
+                max
+        );
+
+        Set<ProtectedRegion> regions = new LinkedHashSet<>();
+        for (ProtectedRegion region : regionManager.getApplicableRegions(searchRegion)) {
+            if (ProtectionStones.isPSRegion(region) && !region.isOwner(player)) {
+                regions.add(region);
+            }
+        }
+        return regions;
+    }
+
+    static String getOwnerNames(Collection<ProtectedRegion> regions) {
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        for (ProtectedRegion region : regions) {
+            DefaultDomain owners = region.getOwners();
+            names.addAll(owners.getPlayers());
+
+            for (UUID uuid : owners.getUniqueIds()) {
+                String name = UUIDCache.getNameFromUUID(uuid);
+                if (name == null) name = Bukkit.getOfflinePlayer(uuid).getName();
+                names.add(name == null ? uuid.toString() : name);
+            }
+        }
+
+        return String.join(", ", names);
     }
 
     // create PS region from a block place event
@@ -231,11 +283,19 @@ public class BlockHandler {
             return false;
         }
 
-        // check for minimum distance between claims by using fake region
+        Set<ProtectedRegion> foreignClaimsWithinDistance = Set.of();
         if (blockOptions.distanceBetweenClaims != -1 && !p.hasPermission("protectionstones.superowner")) {
-            if (!isFarEnoughFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz)) {
-                PSL.msg(p, PSL.REGION_TOO_CLOSE.msg().replace("%num%", "" + blockOptions.distanceBetweenClaims));
-                return false;
+            ClaimDistanceAction distanceAction = ClaimDistanceAction.fromConfig(blockOptions.distanceBetweenClaimsAction);
+
+            if (distanceAction == ClaimDistanceAction.DENY) {
+                if (!isFarEnoughFromOtherClaims(blockOptions, p.getWorld(), lp, bx, by, bz)) {
+                    PSL.msg(p, PSL.REGION_TOO_CLOSE.msg().replace("%num%", "" + blockOptions.distanceBetweenClaims));
+                    return false;
+                }
+            } else if (distanceAction == ClaimDistanceAction.WARN) {
+                foreignClaimsWithinDistance = getForeignClaimsWithinDistance(
+                        rm, lp, bx, by, bz, blockOptions.distanceBetweenClaims
+                );
             }
         }
 
@@ -286,6 +346,13 @@ public class BlockHandler {
         if (event.isCancelled()) {
             rm.removeRegion(id);
             return false;
+        }
+
+        if (!foreignClaimsWithinDistance.isEmpty()) {
+            String ownerNames = getOwnerNames(foreignClaimsWithinDistance);
+            PSL.msg(p, PSL.REGION_DISTANCE_BETWEEN_CLAIMS_WARNING.msg()
+                    .replace("%num%", "" + blockOptions.distanceBetweenClaims)
+                    .replace("%owners%", ownerNames));
         }
 
         PSL.msg(p, PSL.PROTECTED.msg());

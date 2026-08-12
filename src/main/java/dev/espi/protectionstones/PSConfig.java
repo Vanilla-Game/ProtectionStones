@@ -193,6 +193,14 @@ public class PSConfig {
                 // convert toml data into object
                 PSProtectBlock b = new ObjectConverter().toObject(c, PSProtectBlock::new);
 
+                if (!ClaimDistanceAction.isSupported(b.distanceBetweenClaimsAction)) {
+                    ProtectionStones.getPluginLogger().warning(String.format(
+                            "Unsupported distance_between_claims_action '%s' in %s; using 'deny'.",
+                            b.distanceBetweenClaimsAction, file.getName()
+                    ));
+                    b.distanceBetweenClaimsAction = "deny";
+                }
+
                 // check if material is valid, and is not a player head (since player heads also have the player name after)
                 if (Material.getMaterial(b.type) == null && !(b.type.startsWith(Material.PLAYER_HEAD.toString()))) {
                     ProtectionStones.getPluginLogger().warning("Unrecognized material: " + b.type);
