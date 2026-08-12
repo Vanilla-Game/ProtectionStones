@@ -104,6 +104,7 @@ public enum PSL {
     WORLD_DENIED_CREATE("psregion.world_denied_create", ChatColor.RED + "You can not create protections in this world."),
     REGION_OVERLAP("psregion.region_overlap", ChatColor.RED + "You can not place a protection block here as it overlaps another region."),
     REGION_TOO_CLOSE("psregion.region_too_close", ChatColor.RED + "Your protection block must be a minimum of %num% blocks from the edge of other regions!"),
+    REGION_NEARBY_FOREIGN_CLAIM_WARNING("psregion.region_nearby_foreign_claim_warning", ChatColor.GOLD + "Warning: " + ChatColor.YELLOW + "Placing a protection block closer than %num% blocks to another player's protected region requires explicit consent from its owners: " + ChatColor.AQUA + "%owners%" + ChatColor.YELLOW + "."),
     REGION_TOO_CLOSE_TO_WORLD_BORDER("psregion.region_too_close_to_world_border", ChatColor.RED + "The edge of your protected region must be at least %num% blocks from the world border!"),
     REGION_CANT_TELEPORT("psregion.cant_teleport", ChatColor.RED + "Your teleportation was blocked by a protection region!"),
     SPECIFY_ID_INSTEAD_OF_ALIAS("psregion.specify_id_instead_of_alias", ChatColor.GRAY + "There were multiple regions found with this name! Please use an ID instead.\n Regions with this name: " + ChatColor.AQUA + "%regions%"),

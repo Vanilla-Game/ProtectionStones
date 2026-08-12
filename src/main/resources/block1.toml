@@ -54,6 +54,14 @@ placing_bypasses_wg_passthrough = true
     # Set to 0 to only prevent regions from crossing the world border, or -1 to disable this check.
     distance_from_world_border = -1
 
+    # Distance from the placed protection block to the edge of another player's ProtectionStones region.
+    # This is used by nearby_foreign_claim_action and is measured horizontally.
+    nearby_foreign_claim_distance = 30
+
+    # Action when another player's ProtectionStones region is closer than nearby_foreign_claim_distance.
+    # Supported actions: "none" (do nothing), "warn" (warn the player without preventing placement).
+    nearby_foreign_claim_action = "none"
+
     # Protection radius of block (radius of 64 -> 129 x 129 region)
     # Set y_radius to -1 if you want it to protect for all y levels.
     # y_radius must be -1 if you are allowing the region to be merged ("allow_merging" option)

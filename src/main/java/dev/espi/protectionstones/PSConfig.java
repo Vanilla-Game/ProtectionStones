@@ -193,6 +193,14 @@ public class PSConfig {
                 // convert toml data into object
                 PSProtectBlock b = new ObjectConverter().toObject(c, PSProtectBlock::new);
 
+                if (!NearbyForeignClaimAction.isSupported(b.nearbyForeignClaimAction)) {
+                    ProtectionStones.getPluginLogger().warning(String.format(
+                            "Unsupported nearby_foreign_claim_action '%s' in %s; using 'none'.",
+                            b.nearbyForeignClaimAction, file.getName()
+                    ));
+                    b.nearbyForeignClaimAction = "none";
+                }
+
                 // check if material is valid, and is not a player head (since player heads also have the player name after)
                 if (Material.getMaterial(b.type) == null && !(b.type.startsWith(Material.PLAYER_HEAD.toString()))) {
                     ProtectionStones.getPluginLogger().warning("Unrecognized material: " + b.type);
