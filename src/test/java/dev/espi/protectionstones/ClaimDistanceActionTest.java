@@ -26,20 +26,20 @@ class ClaimDistanceActionTest {
     void defaultsToDenyForMissingOrUnsupportedActions() {
         assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig(null));
         assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig("block"));
+        assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig("none"));
     }
 
     @Test
     void parsesSupportedActionsCaseInsensitively() {
         assertEquals(ClaimDistanceAction.DENY, ClaimDistanceAction.fromConfig("deny"));
         assertEquals(ClaimDistanceAction.WARN, ClaimDistanceAction.fromConfig(" WARN "));
-        assertEquals(ClaimDistanceAction.NONE, ClaimDistanceAction.fromConfig("None"));
     }
 
     @Test
     void validatesOnlyDocumentedActions() {
         assertTrue(ClaimDistanceAction.isSupported("deny"));
         assertTrue(ClaimDistanceAction.isSupported("WARN"));
-        assertTrue(ClaimDistanceAction.isSupported("none"));
+        assertFalse(ClaimDistanceAction.isSupported("none"));
         assertFalse(ClaimDistanceAction.isSupported("block"));
         assertFalse(ClaimDistanceAction.isSupported(null));
     }
