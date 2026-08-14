@@ -50,14 +50,20 @@ public class PSMergedRegion extends PSRegion {
     private String id, type;
 
     PSMergedRegion(String id, PSGroupRegion mergedGroup, RegionManager rgmanager, World world) {
-        this(id, mergedGroup.getMergedRegionType(id), mergedGroup, rgmanager, world);
-    }
-
-    PSMergedRegion(String id, String type, PSGroupRegion mergedGroup, RegionManager rgmanager, World world) {
         super(rgmanager, world); // null checks are in super constructor
         this.id = checkNotNull(id);
-        this.type = checkNotNull(type);
         this.mergedGroup = checkNotNull(mergedGroup);
+
+        // get type
+        // stored instead of fetched on the fly because unmerge algorithm removes the flag causing getType to return null
+        for (String s : mergedGroup.getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS_TYPES)) {
+            String[] spl = s.split(" ");
+            String did = spl[0], type = spl[1];
+            if (did.equals(getId())) {
+                this.type = type;
+                break;
+            }
+        }
     }
 
     // ~~~~~~~~~~~ static ~~~~~~~~~~~~~~~~

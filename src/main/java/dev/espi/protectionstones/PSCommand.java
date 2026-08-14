@@ -127,11 +127,7 @@ public class PSCommand extends Command {
                         }
                     }
 
-                    try {
-                        return command.executeArgument(s, nArgs.toArray(new String[0]), flags);
-                    } catch (InvalidMergedRegionException exception) {
-                        return RegionDataErrorHandler.report(s, exception);
-                    }
+                    return command.executeArgument(s, nArgs.toArray(new String[0]), flags);
                 } else if (!command.allowNonPlayersToExecute()) {
                     s.sendMessage(ChatColor.RED + "You can only use /ps reload, /ps admin, /ps give from console.");
                     return true;

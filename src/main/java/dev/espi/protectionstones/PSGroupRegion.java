@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class PSGroupRegion extends PSStandardRegion {
     PSGroupRegion(ProtectedRegion wgregion, RegionManager rgmanager, World world) {
         super(wgregion, rgmanager, world);
-        getMergedRegionTypes();
+        assert getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS) != null;
     }
 
     @Override
@@ -140,7 +140,7 @@ public class PSGroupRegion extends PSStandardRegion {
      * @return whether or not the id is a merged region
      */
     public boolean hasMergedRegion(String id) {
-        return getMergedRegionTypes().containsKey(id);
+        return getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS).contains(id);
     }
 
     /**
@@ -149,7 +149,6 @@ public class PSGroupRegion extends PSStandardRegion {
      * @param id the id of the merged region
      */
     public void removeMergedRegionInfo(String id) {
-        getMergedRegionTypes();
         getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS).remove(id);
 
         // remove from ps merged region types
@@ -190,78 +189,11 @@ public class PSGroupRegion extends PSStandardRegion {
      */
     public List<PSMergedRegion> getMergedRegionsUnsafe() {
         List<PSMergedRegion> l = new ArrayList<>();
-        for (Map.Entry<String, String> entry : getMergedRegionTypes().entrySet()) {
-            l.add(new PSMergedRegion(entry.getKey(), entry.getValue(), this, getWGRegionManager(), getWorld()));
+        for (String line : getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS_TYPES)) {
+            String[] spl = line.split(" ");
+            String id = spl[0], type = spl[1];
+            l.add(new PSMergedRegion(id, this, getWGRegionManager(), getWorld()));
         }
         return l;
-    }
-
-    String getMergedRegionType(String id) {
-        String type = getMergedRegionTypes().get(id);
-        if (type == null) {
-            throw invalidMetadata("ps-merged-regions does not contain " + id);
-        }
-        return type;
-    }
-
-    private Map<String, String> getMergedRegionTypes() {
-        return parseMergedRegionTypes(
-                getWorld().getName(),
-                getId(),
-                getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS),
-                getWGRegion().getFlag(FlagHandler.PS_MERGED_REGIONS_TYPES)
-        );
-    }
-
-    static Map<String, String> parseMergedRegionTypes(String worldName, String regionId,
-                                                       Set<String> mergedIds, Set<String> typeEntries) {
-        if (mergedIds == null) {
-            throw new InvalidMergedRegionException(worldName, regionId, "missing ps-merged-regions flag");
-        }
-        if (typeEntries == null) {
-            throw new InvalidMergedRegionException(worldName, regionId, "missing ps-merged-regions-types flag");
-        }
-        if (mergedIds.size() < 2) {
-            throw new InvalidMergedRegionException(worldName, regionId,
-                    "ps-merged-regions must contain at least two region IDs");
-        }
-        if (!mergedIds.contains(regionId)) {
-            throw new InvalidMergedRegionException(worldName, regionId,
-                    "ps-merged-regions does not contain the group region ID");
-        }
-
-        Map<String, String> typesById = new HashMap<>();
-        for (String entry : typeEntries) {
-            if (entry == null) {
-                throw new InvalidMergedRegionException(worldName, regionId,
-                        "ps-merged-regions-types contains a null entry");
-            }
-
-            String[] parts = entry.trim().split("\\s+");
-            if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
-                throw new InvalidMergedRegionException(worldName, regionId,
-                        "invalid ps-merged-regions-types entry: " + entry);
-            }
-            if (typesById.put(parts[0], parts[1]) != null) {
-                throw new InvalidMergedRegionException(worldName, regionId,
-                        "duplicate type entry for merged region " + parts[0]);
-            }
-        }
-
-        if (!mergedIds.equals(typesById.keySet())) {
-            Set<String> missingTypes = new TreeSet<>(mergedIds);
-            missingTypes.removeAll(typesById.keySet());
-            Set<String> unexpectedTypes = new TreeSet<>(typesById.keySet());
-            unexpectedTypes.removeAll(mergedIds);
-            throw new InvalidMergedRegionException(worldName, regionId,
-                    "merged region IDs and type entries differ (missing types: " + missingTypes
-                            + ", unexpected types: " + unexpectedTypes + ")");
-        }
-
-        return Collections.unmodifiableMap(typesById);
-    }
-
-    private InvalidMergedRegionException invalidMetadata(String reason) {
-        return new InvalidMergedRegionException(getWorld().getName(), getId(), reason);
     }
 }
