@@ -182,8 +182,13 @@ public class BlockHandler {
         }
 
         // create region, and cancel if it fails
-        if (!createPSRegion(p, b.getLocation(), blockOptions)) {
+        try {
+            if (!createPSRegion(p, b.getLocation(), blockOptions)) {
+                e.setCancelled(true);
+            }
+        } catch (RuntimeException exception) {
             e.setCancelled(true);
+            throw exception;
         }
     }
 
