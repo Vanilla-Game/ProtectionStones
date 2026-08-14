@@ -152,6 +152,15 @@ public class BlockHandler {
 
     // create PS region from a block place event
     public static void createPSRegion(BlockPlaceEvent e) {
+        try {
+            createPSRegionChecked(e);
+        } catch (InvalidMergedRegionException exception) {
+            e.setCancelled(true);
+            RegionDataErrorHandler.report(e.getPlayer(), exception);
+        }
+    }
+
+    private static void createPSRegionChecked(BlockPlaceEvent e) {
         Player p = e.getPlayer();
         Block b = e.getBlock();
 

@@ -93,6 +93,7 @@ public enum PSL {
     NOT_IN_REGION("psregion.not_in_region", ChatColor.RED + "You are not in a protection stones region!"),
     PLAYER_NOT_FOUND("psregion.player_not_found", ChatColor.RED + "Player not found."),
     NOT_PS_REGION("psregion.not_ps_region", ChatColor.RED + "Not a protection stones region."),
+    INVALID_REGION_DATA("psregion.invalid_region_data", ChatColor.RED + "This protection region has invalid data. The operation was cancelled; please contact an administrator. Region: %region%.", "%region%"),
     REGION_DOES_NOT_EXIST("psregion.region_does_not_exist", ChatColor.RED + "Region does not exist."),
     NO_REGIONS_OWNED("psregion.no_regions_owned", ChatColor.RED + "You don't own any protected regions in this world!"),
     NO_REGION_PERMISSION("psregion.no_region_permission", ChatColor.RED + "You do not have permission to do this in this region."),

@@ -227,6 +227,15 @@ public class ListenerClass implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent e) {
+        try {
+            onPlayerInteractChecked(e);
+        } catch (InvalidMergedRegionException exception) {
+            e.setCancelled(true);
+            RegionDataErrorHandler.report(e.getPlayer(), exception);
+        }
+    }
+
+    private void onPlayerInteractChecked(PlayerInteractEvent e) {
         // shift-right click block with hand to break
         if (e.getAction() == Action.RIGHT_CLICK_BLOCK && !e.isBlockInHand()
                 && e.getClickedBlock() != null && ProtectionStones.isProtectBlock(e.getClickedBlock())) {
@@ -245,6 +254,15 @@ public class ListenerClass implements Listener {
     // thus we should cancel the event here if possible (so other plugins don't start acting upon it)
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockBreakLowPriority(BlockBreakEvent e) {
+        try {
+            onBlockBreakLowPriorityChecked(e);
+        } catch (InvalidMergedRegionException exception) {
+            e.setCancelled(true);
+            RegionDataErrorHandler.report(e.getPlayer(), exception);
+        }
+    }
+
+    private void onBlockBreakLowPriorityChecked(BlockBreakEvent e) {
         Player p = e.getPlayer();
         Block pb = e.getBlock();
 
@@ -263,6 +281,15 @@ public class ListenerClass implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent e) {
+        try {
+            onBlockBreakChecked(e);
+        } catch (InvalidMergedRegionException exception) {
+            e.setCancelled(true);
+            RegionDataErrorHandler.report(e.getPlayer(), exception);
+        }
+    }
+
+    private void onBlockBreakChecked(BlockBreakEvent e) {
         Player p = e.getPlayer();
         Block pb = e.getBlock();
 
@@ -416,6 +443,16 @@ public class ListenerClass implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockDropItem(BlockDropItemEvent e) {
+        try {
+            onBlockDropItemChecked(e);
+        } catch (InvalidMergedRegionException exception) {
+            e.setCancelled(true);
+            e.getBlockState().update(true, false);
+            RegionDataErrorHandler.report(e.getPlayer(), exception);
+        }
+    }
+
+    private void onBlockDropItemChecked(BlockDropItemEvent e) {
         // unfortunately, the below fix does not really work because Spigot only triggers for the source block, despite
         // what the documentation says: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/block/BlockDropItemEvent.html
 
