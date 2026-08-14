@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.13.1](https://github.com/Vanilla-Game/ProtectionStones/compare/v2.13.0...v2.13.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* cancel protection block placement on error ([#17](https://github.com/Vanilla-Game/ProtectionStones/issues/17)) ([d1078b0](https://github.com/Vanilla-Game/ProtectionStones/commit/d1078b030bbd1cfb3e9625daaa6d6243412a1d7a))
+* simplify claim distance configuration ([#15](https://github.com/Vanilla-Game/ProtectionStones/issues/15)) ([ee45acd](https://github.com/Vanilla-Game/ProtectionStones/commit/ee45acdf42cbf590c18f2522d4706243fa214b82))
+
 ## [2.13.0](https://github.com/Vanilla-Game/ProtectionStones/compare/v2.12.0...v2.13.0) (2026-08-12)
 
 
