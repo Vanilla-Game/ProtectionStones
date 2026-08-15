@@ -33,13 +33,26 @@ class ClaimDistanceOwnersTest {
         assertEquals("alice, bob, carol", BlockHandler.getOwnerNames(List.of(second, first)));
     }
 
+    @Test
+    void returnsMinimumDistanceBetweenRegionBoundaries() {
+        ProtectedRegion candidate = region("candidate", 0, 32, 0, 32);
+        ProtectedRegion farther = region("farther", 0, 32, 72, 104);
+        ProtectedRegion nearer = region("nearer", 62, 94, 0, 32);
+
+        assertEquals(30, BlockHandler.getMinimumBoundaryDistance(candidate, List.of(farther, nearer)));
+    }
+
     private static ProtectedRegion region(String id, String... owners) {
-        ProtectedRegion region = new ProtectedCuboidRegion(
-                id,
-                BlockVector3.at(0, 0, 0),
-                BlockVector3.at(10, 10, 10)
-        );
+        ProtectedRegion region = region(id, 0, 10, 0, 10);
         for (String owner : owners) region.getOwners().addPlayer(owner);
         return region;
+    }
+
+    private static ProtectedRegion region(String id, int minX, int maxX, int minZ, int maxZ) {
+        return new ProtectedCuboidRegion(
+                id,
+                BlockVector3.at(minX, 0, minZ),
+                BlockVector3.at(maxX, 10, maxZ)
+        );
     }
 }
