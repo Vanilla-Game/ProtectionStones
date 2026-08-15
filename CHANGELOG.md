@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.2](https://github.com/Vanilla-Game/ProtectionStones/compare/v2.13.1...v2.13.2) (2026-08-15)
+
+
+### Bug Fixes
+
+* report claim distance from region boundaries ([#18](https://github.com/Vanilla-Game/ProtectionStones/issues/18)) ([707b782](https://github.com/Vanilla-Game/ProtectionStones/commit/707b7829fe5736749567311a430f4dbc8e76dab2))
+
 ## [2.13.1](https://github.com/Vanilla-Game/ProtectionStones/compare/v2.13.0...v2.13.1) (2026-08-14)
 
 
