@@ -150,6 +150,32 @@ public class BlockHandler {
         return String.join(", ", names);
     }
 
+    static int getMinimumBoundaryDistance(ProtectedRegion region, Collection<ProtectedRegion> otherRegions) {
+        int minimumDistance = Integer.MAX_VALUE;
+        for (ProtectedRegion otherRegion : otherRegions) {
+            minimumDistance = Math.min(minimumDistance, getBoundaryDistance(region, otherRegion));
+        }
+        return minimumDistance;
+    }
+
+    private static int getBoundaryDistance(ProtectedRegion first, ProtectedRegion second) {
+        int xDistance = getAxisDistance(
+                first.getMinimumPoint().getX(), first.getMaximumPoint().getX(),
+                second.getMinimumPoint().getX(), second.getMaximumPoint().getX()
+        );
+        int zDistance = getAxisDistance(
+                first.getMinimumPoint().getZ(), first.getMaximumPoint().getZ(),
+                second.getMinimumPoint().getZ(), second.getMaximumPoint().getZ()
+        );
+        return Math.max(xDistance, zDistance);
+    }
+
+    private static int getAxisDistance(int firstMin, int firstMax, int secondMin, int secondMax) {
+        if (firstMax < secondMin) return secondMin - firstMax;
+        if (secondMax < firstMin) return firstMin - secondMax;
+        return 0;
+    }
+
     // create PS region from a block place event
     public static void createPSRegion(BlockPlaceEvent e) {
         Player p = e.getPlayer();
@@ -355,8 +381,9 @@ public class BlockHandler {
 
         if (!foreignClaimsWithinDistance.isEmpty()) {
             String ownerNames = getOwnerNames(foreignClaimsWithinDistance);
+            int boundaryDistance = getMinimumBoundaryDistance(region, foreignClaimsWithinDistance);
             PSL.msg(p, PSL.REGION_DISTANCE_BETWEEN_CLAIMS_WARNING.msg()
-                    .replace("%num%", "" + blockOptions.distanceBetweenClaims)
+                    .replace("%num%", "" + boundaryDistance)
                     .replace("%owners%", ownerNames));
         }
 
